@@ -22,6 +22,20 @@
 | K14 | 협곡 게임 타입은 무엇이야? | knowledge_query | search_game_knowledge | game_type 문서 | 문서 없음 | 없음 |
 | K15 | 최근 세 패치의 시스템 변경을 찾아줘. | knowledge_query | search_game_knowledge | patch_note category와 버전 | 패치 문서 부족 | 없음 |
 
+### K10·K14 키워드 평가 규칙
+
+- K10은 `game_mode`로 분류하고 검증된 공식 영문 구문 `Summoner's Rift`로 검색한다.
+  이 검색은 `CLASSIC`을 유일한 정답으로 강제하지 않는다.
+- K14는 `game_type`로 분류하지만 Map 정보만으로 `MATCHED_GAME`, `CUSTOM_GAME`,
+  `TUTORIAL_GAME`을 확정할 수 없으므로 `needs_clarification`이 기대 결과다.
+
+### K05 소환사 주문 모드 평가 규칙
+
+- 모드를 명시하지 않은 점멸 질문은 프로젝트 기본 범위인 `CLASSIC`의
+  `source_id=SummonerFlash`를 선택한다.
+- `CHERRY`·`아레나` 또는 `JADE`가 명시되면 각각 검증된 모드별 source ID를 선택한다.
+- 일반 점멸 답변의 근거로 `SummonerCherryFlash`나 `SummonerFlash_Jade`를 사용하지 않는다.
+
 ## 개인 경기 분석 15개
 
 | 번호 | 질문 | 유형 | 도구 | 데이터·기대 근거 | 불가능 조건 | 개인정보 |
