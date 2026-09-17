@@ -70,6 +70,37 @@ def test_account_bad_request_has_safe_error_metadata() -> None:
 
 
 @pytest.mark.parametrize(
+    ("http_status", "expected_code"),
+    [
+        (401, "RIOT_API_UNAUTHORIZED"),
+        (403, "RIOT_API_KEY_EXPIRED_OR_FORBIDDEN"),
+        (404, "RIOT_ACCOUNT_NOT_FOUND"),
+        (429, "RIOT_RATE_LIMITED"),
+        (500, "RIOT_SERVICE_ERROR"),
+        (503, "RIOT_SERVICE_ERROR"),
+    ],
+)
+def test_account_http_errors_have_safe_metadata(
+    http_status: int,
+    expected_code: str,
+) -> None:
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(http_status, json={"status": {"message": "ignored"}})
+
+    client = RiotClient("test-key", transport=httpx.MockTransport(handler))
+    try:
+        with pytest.raises(RiotApiError) as exc_info:
+            client.account_by_riot_id("Player", "KR1")
+    finally:
+        client.close()
+
+    assert exc_info.value.code == expected_code
+    assert exc_info.value.stage == "account_v1"
+    assert exc_info.value.http_status == http_status
+    assert client.usage.calls == 1
+
+
+@pytest.mark.parametrize(
     ("exception_classes", "expected_code"),
     [
         (("LocalProtocolError",), "RIOT_LOCAL_PROTOCOL_ERROR"),
@@ -104,3 +135,27 @@ def test_network_errors_have_safe_specific_codes(
 
     assert exc_info.value.code == expected_code
     assert exc_info.value.exception_class == exception_classes[0]
+
+
+def test_unknown_network_error_uses_safe_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = RiotClient("test-key")
+
+    def fail_safely(*_args, **_kwargs):
+        raise RiotAPIError(
+            "safe failure",
+            exception_classes=("SomeNetworkError",),
+        )
+
+    monkeypatch.setattr(client._client, "get_json", fail_safely)
+    try:
+        with pytest.raises(RiotApiError) as exc_info:
+            client.account_by_riot_id("Player", "KR1")
+    finally:
+        client.close()
+
+    assert exc_info.value.code == "RIOT_NETWORK_ERROR"
+    assert exc_info.value.stage == "account_v1"
+    assert exc_info.value.http_status is None
+    assert exc_info.value.exception_class == "SomeNetworkError"
