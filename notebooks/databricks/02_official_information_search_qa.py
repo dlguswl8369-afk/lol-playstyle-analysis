@@ -1,5 +1,5 @@
 # Databricks notebook source
-# GitHub backup copy: configure YOUR_* placeholders before use; execution outputs are not included.
+# GitHub backup copy: configure <...> placeholders before use; execution outputs are not included.
 # MAGIC %md
 # MAGIC # 공식 게임정보 검색 QA
 # MAGIC 사용자 질문을 공식정보 유형으로 분류하고, Git 폴더의 검색 계획을 통해 Azure AI Search를 읽기 전용으로 검증한다. Azure OpenAI, Foundry, 임베딩, LLM은 사용하지 않는다.
@@ -12,12 +12,12 @@ import platform
 import subprocess
 from urllib.parse import urlparse
 
-EXPECTED_WORKSPACE_HOSTNAME = "YOUR_RUNTIME_HOSTNAME"
-EXPECTED_WORKSPACE_ID = "YOUR_WORKSPACE_ID"
-EXPECTED_USER = "YOUR_DATABRICKS_USER"
-EXPECTED_GIT_HEAD = "YOUR_EXPECTED_GIT_HEAD"
-REPO_ROOT = "/Workspace/Users/YOUR_DATABRICKS_USER/lol-playstyle-analysis"
-SEARCH_ENDPOINT = "https://5dt-team3-lol-search-dev.search.windows.net"
+EXPECTED_WORKSPACE_HOSTNAME = "<DATABRICKS_RUNTIME_HOSTNAME>"
+EXPECTED_WORKSPACE_ID = "<WORKSPACE_ID>"
+EXPECTED_USER = "<DATABRICKS_USER>"
+EXPECTED_GIT_HEAD = "<GIT_HEAD>"
+REPO_ROOT = "/Workspace/Users/<DATABRICKS_USER>/lol-playstyle-analysis"
+SEARCH_ENDPOINT = "<AZURE_SEARCH_ENDPOINT>"
 SEARCH_INDEX = "lol-official-rag-dev"
 
 ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
@@ -154,7 +154,7 @@ import re
 AUTH_STATUS = "AUTH_BLOCKED"
 AUTH_REASON = None
 ACCESS_TOKEN = None
-SECRET_SCOPE = "YOUR_SECRET_SCOPE"
+SECRET_SCOPE = "<DATABRICKS_SECRET_SCOPE>"
 
 tenant_id = None
 client_id = None
@@ -184,13 +184,13 @@ else:
     else:
         secret_diagnostics = {
             "tenant_id_nonempty": bool(tenant_id),
-            "tenant_id_matches_expected": tenant_id == "5fb256f0-fbf2-40d2-81d5-bac1b32c419d",
+            "tenant_id_matches_expected": tenant_id == "<AZURE_TENANT_ID>",
             "tenant_id_has_surrounding_whitespace": tenant_id != tenant_id.strip(),
             "tenant_id_has_cr": "\r" in tenant_id,
             "tenant_id_has_lf": "\n" in tenant_id,
             "tenant_id_has_nul": "\x00" in tenant_id,
             "client_id_nonempty": bool(client_id),
-            "client_id_matches_expected": client_id == "cb757f4d-6e28-4d82-beb2-1262956e50a4",
+            "client_id_matches_expected": client_id == "<AZURE_CLIENT_ID>",
             "client_id_has_surrounding_whitespace": client_id != client_id.strip(),
             "client_id_has_cr": "\r" in client_id,
             "client_id_has_lf": "\n" in client_id,

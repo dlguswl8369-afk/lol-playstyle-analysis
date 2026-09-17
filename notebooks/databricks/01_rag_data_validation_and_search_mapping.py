@@ -1,5 +1,5 @@
 # Databricks notebook source
-# GitHub backup copy: configure YOUR_* placeholders before use; execution outputs are not included.
+# GitHub backup copy: configure <...> placeholders before use; execution outputs are not included.
 # MAGIC %md
 # MAGIC # 01 · RAG 데이터 검증 및 검색 매핑
 # MAGIC
@@ -38,11 +38,11 @@ from urllib.parse import urlparse
 # COMMAND ----------
 
 JSONL_PATH = Path(
-    "/Workspace/Users/YOUR_DATABRICKS_USER/"
+    "/Workspace/Users/<DATABRICKS_USER>/"
     "rag_hyunji_dev/input/rag_search/rag_documents.jsonl"
 )
 MANIFEST_PATH = Path(
-    "/Workspace/Users/YOUR_DATABRICKS_USER/"
+    "/Workspace/Users/<DATABRICKS_USER>/"
     "rag_hyunji_dev/input/rag_search/rag_documents_manifest.json"
 )
 

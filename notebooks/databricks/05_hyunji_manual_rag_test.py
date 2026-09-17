@@ -1,5 +1,5 @@
 # Databricks notebook source
-# GitHub backup copy: configure YOUR_* placeholders before use; execution outputs are not included.
+# GitHub backup copy: configure <...> placeholders before use; execution outputs are not included.
 # /// script
 # [tool.databricks.environment]
 # environment_version = "5"
@@ -66,12 +66,12 @@ from pathlib import Path
 import httpx
 from azure.identity import ClientSecretCredential
 
-EXPECTED_WORKSPACE_ID = "YOUR_WORKSPACE_ID"
-EXPECTED_USER = "YOUR_DATABRICKS_USER"
-EXPECTED_RUNTIME_HOSTNAME = "YOUR_RUNTIME_HOSTNAME"
+EXPECTED_WORKSPACE_ID = "<WORKSPACE_ID>"
+EXPECTED_USER = "<DATABRICKS_USER>"
+EXPECTED_RUNTIME_HOSTNAME = "<DATABRICKS_RUNTIME_HOSTNAME>"
 EXPECTED_GIT_BRANCH = "feature/rag-personal-qa-prep"
-EXPECTED_GIT_HEAD = "YOUR_EXPECTED_GIT_HEAD"
-GIT_REPO_ID = "YOUR_GIT_REPO_ID"
+EXPECTED_GIT_HEAD = "<GIT_HEAD>"
+GIT_REPO_ID = "<GIT_REPO_ID>"
 
 ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
 workspace_id = str(ctx.workspaceId().get())
@@ -98,7 +98,7 @@ environment_checks = {
 if not all(environment_checks.values()):
     raise RuntimeError("environment_validation_failed")
 
-GIT_SRC = Path("/Workspace/Users/YOUR_DATABRICKS_USER/lol-playstyle-analysis/src")
+GIT_SRC = Path("/Workspace/Users/<DATABRICKS_USER>/lol-playstyle-analysis/src")
 if str(GIT_SRC) not in sys.path:
     sys.path.insert(0, str(GIT_SRC))
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from time import perf_counter
 from typing import Any
 
@@ -13,13 +13,20 @@ from .official_search import (
     model_context,
     safe_citations,
 )
-from .personal_analysis import build_match_records, build_personal_evidence
+from .personal_analysis import (
+    build_final_item_statistics,
+    build_item_catalog,
+    build_item_purchase_statistics,
+    build_match_records,
+    build_personal_evidence,
+)
 from .riot_client import RiotApiError, RiotClient
 from .routing import (
     champion_candidate,
     classify_question,
     classify_question_reason,
     needs_improvement_comparison,
+    needs_item_timeline,
     needs_opponent_comparison,
     needs_period_comparison,
     needs_timeline,
@@ -33,6 +40,7 @@ class AgentDependencies:
     riot_api_key: str | None = None
     riot_trust_env: bool = True
     openai_max_output_tokens: int = 700
+    item_cache: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -45,6 +53,7 @@ class PlayerContext:
     internals: dict[str, dict[str, Any]]
     timelines: dict[str, dict[str, Any]]
     riot_calls: int
+    timeline_errors: dict[str, str] = field(default_factory=dict)
 
 
 def collect_player_context(
@@ -90,6 +99,7 @@ def collect_player_context(
             internals=internals,
             timelines=timelines,
             riot_calls=riot.usage.calls,
+            timeline_errors={},
         )
     finally:
         riot.close()
@@ -181,6 +191,173 @@ def _vision_answer(evidence: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _valid_context_rows(context: PlayerContext, selected_count: int) -> list[dict[str, Any]]:
+    return sorted(
+        (row for row in context.rows[:selected_count] if not row.get("is_remake")),
+        key=lambda row: int(row.get("game_start_timestamp") or 0),
+        reverse=True,
+    )
+
+
+def _load_item_timelines(
+    context: PlayerContext,
+    dependencies: AgentDependencies,
+    selected_count: int,
+) -> int:
+    if not dependencies.riot_api_key:
+        raise ValueError("riot_api_key is required")
+    riot = RiotClient(
+        dependencies.riot_api_key.strip(),
+        trust_env=dependencies.riot_trust_env,
+    )
+    try:
+        for row in _valid_context_rows(context, selected_count):
+            alias = str(row["match_id"])
+            if alias in context.timelines or alias in context.timeline_errors:
+                continue
+            raw_match_id = context.internals.get(alias, {}).get("raw_match_id")
+            if not raw_match_id:
+                context.timeline_errors[alias] = "RIOT_MATCH_ID_UNAVAILABLE"
+                continue
+            try:
+                context.timelines[alias] = riot.timeline(str(raw_match_id))
+            except RiotApiError as exc:
+                context.timeline_errors[alias] = exc.code
+                if exc.code == "RIOT_RATE_LIMITED":
+                    break
+        context.riot_calls += riot.usage.calls
+        return riot.usage.calls
+    finally:
+        riot.close()
+
+
+def _item_name_map(documents: list[dict[str, Any]]) -> dict[str, str]:
+    return {
+        str(document.get("source_id") or ""): str(document.get("title") or "")
+        for document in documents
+        if str(document.get("source_id") or "")
+    }
+
+
+def _item_purchase_frequency_answer(statistics: dict[str, Any]) -> str:
+    name = statistics.get("item_name") or f"아이템 {statistics.get('item_id')}"
+    analyzed = int(statistics.get("matches_analyzed") or 0)
+    purchased = int(statistics.get("matches_purchased") or 0)
+    rate = float(statistics.get("purchase_match_rate") or 0) * 100
+    finished = int(statistics.get("matches_finished_with_item") or 0)
+    events = int(statistics.get("total_purchase_events") or 0)
+    unavailable = int(statistics.get("timeline_matches_unavailable") or 0)
+    return (
+        f"최근 유효 {analyzed}경기 중 {purchased}경기에서 {name}을(를) 구매했습니다"
+        f"({rate:.1f}%). 총 구매 이벤트는 {events}회이며, "
+        f"최종 인벤토리에 남아 있던 경기는 {finished}경기입니다. "
+        f"Timeline을 확인하지 못한 경기는 {unavailable}경기입니다."
+    )
+
+
+def _item_purchase_timing_answer(statistics: dict[str, Any]) -> str:
+    name = statistics.get("item_name") or f"아이템 {statistics.get('item_id')}"
+    purchased_rows = [
+        row for row in statistics.get("per_match_purchase_times") or [] if row.get("purchased")
+    ]
+    if not purchased_rows:
+        return (
+            f"최근 유효 {statistics.get('matches_analyzed', 0)}경기의 Timeline에서 "
+            f"{name} 구매 기록은 0회였습니다."
+        )
+    lines = [
+        f"최근 유효 {statistics.get('matches_analyzed', 0)}경기에서 확인한 "
+        f"{name} 첫 구매 시점입니다."
+    ]
+    for row in purchased_rows:
+        first = (row.get("purchase_times_display") or ["데이터 없음"])[0]
+        lines.append(f"- {row['match_id']} — {first}")
+    if statistics.get("first_purchase_average_display"):
+        lines.append(f"- 평균 첫 구매 시점: {statistics['first_purchase_average_display']}")
+    return "\n".join(lines)
+
+
+def _ranked_item_line(label: str, ranking: list[dict[str, Any]]) -> str:
+    if not ranking:
+        return f"{label}: 해당 없음"
+    top = ranking[0]
+    name = top.get("item_name") or f"아이템 {top.get('item_id')}"
+    rate = float(top.get("purchase_match_rate") or 0) * 100
+    return (
+        f"{label}: {name} — {top.get('matches_purchased', 0)}경기 "
+        f"({rate:.1f}%), 총 {top.get('total_purchase_events', 0)}회"
+    )
+
+
+def _most_common_item_answer(statistics: dict[str, Any]) -> str:
+    if not statistics.get("most_common_purchased_items"):
+        return "최근 유효 경기의 Timeline에서 아이템 구매 기록을 확인하지 못했습니다."
+    lines = [f"최근 유효 {statistics.get('matches_analyzed', 0)}경기 구매 순위입니다."]
+    for label, key in (
+        ("전체 구매 1위", "most_common_purchased_items"),
+        ("완성 장비 1위", "most_common_completed_equipment"),
+        ("조합 재료 1위", "most_common_components"),
+        ("소모품 1위", "most_common_consumables"),
+        ("장신구 1위", "most_common_trinkets"),
+        ("신발 1위", "most_common_boots"),
+    ):
+        lines.append(f"- {_ranked_item_line(label, statistics.get(key) or [])}")
+    return "\n".join(lines)
+
+
+def _category_item_answer(statistics: dict[str, Any], key: str, label: str) -> str:
+    return (
+        f"최근 유효 {statistics.get('matches_analyzed', 0)}경기 기준입니다.\n"
+        f"- {_ranked_item_line(label, statistics.get(key) or [])}"
+    )
+
+
+def _final_build_answer(statistics: dict[str, Any]) -> str:
+    lines = [f"최근 유효 {statistics.get('matches_analyzed', 0)}경기의 최종 아이템입니다."]
+    for row in statistics.get("per_match_final_items") or []:
+        names = []
+        for item in row.get("items") or []:
+            name = item.get("item_name") or f"아이템 {item.get('item_id')}"
+            category = str(item.get("category") or "unknown")
+            if item.get("is_boots"):
+                category = f"{category}/boots"
+            names.append(f"{name} [{category}]")
+        lines.append(f"- {row['match_id']}: {', '.join(names) if names else '빈 인벤토리'}")
+    return "\n".join(lines)
+
+
+def _is_item_purchase_timing_question(question: str) -> bool:
+    return bool(re.search(r"몇\s*분|언제.*(?:샀|구매)|(?:샀|구매).*언제", question))
+
+
+def _is_item_purchase_frequency_question(question: str) -> bool:
+    return bool(
+        re.search(
+            r"(?:자주|얼마나|몇\s*경기).*(?:샀|구매)|(?:샀|구매).*(?:자주|몇\s*경기)", question
+        )
+    )
+
+
+def _is_most_common_purchased_item_question(question: str) -> bool:
+    return bool(re.search(r"(?:가장|제일)\s*자주\s*(?:산|구매한)\s*아이템", question))
+
+
+def _purchase_category_key(question: str) -> tuple[str, str] | None:
+    if re.search(r"장신구", question):
+        return "most_common_trinkets", "장신구 1위"
+    if re.search(r"소모품", question):
+        return "most_common_consumables", "소모품 1위"
+    if re.search(r"조합\s*재료|재료", question):
+        return "most_common_components", "조합 재료 1위"
+    if re.search(r"장비", question):
+        return "most_common_completed_equipment", "완성 장비 1위"
+    return None
+
+
+def _is_final_item_build_question(question: str) -> bool:
+    return bool(re.search(r"최종\s*아이템|아이템\s*빌드", question))
+
+
 def answer_question(
     question: str,
     riot_id: str | None = None,
@@ -210,28 +387,48 @@ def answer_question(
     selected_count = requested_recent_count(question, normalize_match_count(match_count))
     if needs_period_comparison(question):
         selected_count = max(selected_count, 10)
-    search = OfficialSearchClient(dependencies.entra_credential)
+    search = OfficialSearchClient(
+        dependencies.entra_credential,
+        item_cache=dependencies.item_cache,
+    )
     generator = AnswerGenerator(
         dependencies.entra_credential,
         max_output_tokens=dependencies.openai_max_output_tokens,
     )
     official_documents: list[dict[str, Any]] = []
+    target_item_id: str | None = None
+    target_item_name: str | None = None
     champion_name: str | None = None
     evidence: dict[str, Any] | None = None
     started = perf_counter()
 
     try:
+        item_search_result = search.resolve_item_entity(question)
+        if item_search_result is not None:
+            result["search_query"] = item_search_result.query
+            result["search_filter"] = item_search_result.search_filter
+            if not item_search_result.documents:
+                result.update(status="NO_DATA", answer="공식 아이템 문서를 찾을 수 없습니다.")
+                return result
+            official_documents = item_search_result.documents
+            target_item_id = str(official_documents[0].get("source_id") or "") or None
+            target_item_name = str(official_documents[0].get("title") or "") or None
+
         if route in {"official_information", "mixed"}:
             search_question = question
             search_result = None
             top_champion = _top_champion_from_context(player_context)
             recommendation_target = bool(re.search(r"아이템|룬|주문|패치", question))
-            if route == "official_information":
-                search_result = search.resolve_item_entity(question)
+            if item_search_result is not None:
+                search_result = item_search_result
+            elif route == "official_information":
+                search_result = None
             if search_result is not None:
                 official_documents = search_result.documents
                 result["search_query"] = search_result.query
                 result["search_filter"] = search_result.search_filter
+            elif route == "mixed" and needs_item_timeline(question):
+                pass
             elif route == "mixed" and "아이템" in question:
                 official_documents = search.search_by_type(
                     "체력 방어 마법 저항 보호막 생존",
@@ -303,7 +500,17 @@ def answer_question(
             internals = context.internals
             target_puuid = context.target_puuid
             rank_entry = context.rank_entry
-            timeline_payloads = context.timelines if needs_timeline(question) else {}
+            if needs_item_timeline(question):
+                result["usage"]["riot_calls"] += _load_item_timelines(
+                    context,
+                    dependencies,
+                    selected_count,
+                )
+            timeline_payloads = (
+                context.timelines
+                if needs_timeline(question) or needs_item_timeline(question)
+                else {}
+            )
 
             evidence = build_personal_evidence(
                 rows=rows,
@@ -331,6 +538,119 @@ def answer_question(
                     statistics=evidence,
                 )
                 return result
+
+            item_question = bool(
+                target_item_id
+                or needs_item_timeline(question)
+                or _is_final_item_build_question(question)
+            )
+            if item_question:
+                item_names = _item_name_map(official_documents)
+                preliminary_purchase = None
+                if needs_item_timeline(question):
+                    preliminary_purchase = build_item_purchase_statistics(
+                        rows,
+                        context.timelines,
+                        context.timeline_errors,
+                        item_names,
+                        target_item_id,
+                        build_item_catalog(official_documents),
+                    )
+                ids_to_resolve: list[str] = []
+                if target_item_id:
+                    ids_to_resolve.append(target_item_id)
+                if _is_final_item_build_question(question):
+                    ids_to_resolve.extend(
+                        str(item_id)
+                        for row in rows
+                        if not row.get("is_remake")
+                        for item_id in row.get("final_item_ids") or []
+                    )
+                if preliminary_purchase is not None and not target_item_id:
+                    ids_to_resolve.extend(
+                        str(item.get("item_id") or "")
+                        for item in preliminary_purchase.get("most_common_purchased_items") or []
+                    )
+                missing_ids = [
+                    item_id
+                    for item_id in dict.fromkeys(ids_to_resolve)
+                    if item_id and item_id not in item_names
+                ]
+                if missing_ids:
+                    resolved_items = search.resolve_items_by_ids(missing_ids)
+                    result["search_query"] = resolved_items.query
+                    result["search_filter"] = resolved_items.search_filter
+                    item_names.update(_item_name_map(resolved_items.documents))
+                    existing_document_ids = {
+                        str(document.get("document_id") or "") for document in official_documents
+                    }
+                    official_documents.extend(
+                        document
+                        for document in resolved_items.documents
+                        if str(document.get("document_id") or "") not in existing_document_ids
+                    )
+
+                final_statistics = build_final_item_statistics(
+                    rows,
+                    item_names,
+                    target_item_id,
+                    build_item_catalog(official_documents),
+                )
+                evidence["final_item_statistics"] = final_statistics
+                purchase_statistics = None
+                if needs_item_timeline(question):
+                    purchase_statistics = build_item_purchase_statistics(
+                        rows,
+                        context.timelines,
+                        context.timeline_errors,
+                        item_names,
+                        target_item_id,
+                        build_item_catalog(official_documents),
+                    )
+                    evidence["item_purchase_statistics"] = purchase_statistics
+
+                if route == "mixed" and not target_item_id and purchase_statistics:
+                    ranking = purchase_statistics.get("most_common_purchased_items") or []
+                    if ranking:
+                        target_item_id = str(ranking[0].get("item_id") or "") or None
+                        target_item_name = ranking[0].get("item_name")
+                        official_documents = [
+                            document
+                            for document in official_documents
+                            if str(document.get("source_id") or "") == target_item_id
+                        ]
+                        evidence["interpreted_item"] = {
+                            "item_id": target_item_id,
+                            "item_name": target_item_name,
+                            "limitation": (
+                                "실제 구매 의도는 데이터로 확인할 수 없으며, 경기 기록과 "
+                                "공식 아이템 효과를 바탕으로만 해석합니다."
+                            ),
+                        }
+
+                deterministic_answer = None
+                if route == "personal_match" and target_item_id:
+                    if _is_item_purchase_timing_question(question) and purchase_statistics:
+                        deterministic_answer = _item_purchase_timing_answer(purchase_statistics)
+                    elif _is_item_purchase_frequency_question(question) and purchase_statistics:
+                        deterministic_answer = _item_purchase_frequency_answer(purchase_statistics)
+                if route == "personal_match" and _is_most_common_purchased_item_question(question):
+                    deterministic_answer = _most_common_item_answer(purchase_statistics or {})
+                category_request = _purchase_category_key(question)
+                if route == "personal_match" and category_request and purchase_statistics:
+                    key, label = category_request
+                    deterministic_answer = _category_item_answer(purchase_statistics, key, label)
+                if route == "personal_match" and _is_final_item_build_question(question):
+                    deterministic_answer = _final_build_answer(final_statistics)
+                if deterministic_answer is not None:
+                    result.update(
+                        status="PASS",
+                        answer=deterministic_answer,
+                        statistics=evidence,
+                        citations=safe_citations(official_documents),
+                        official_documents=safe_citations(official_documents),
+                    )
+                    return result
 
             if route == "personal_match" and _is_vision_summary_question(question):
                 result.update(

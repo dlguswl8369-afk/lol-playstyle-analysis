@@ -6,6 +6,12 @@ venv/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+.databricks/
+.databrickscfg
+*.secret.tmp
+*.token.tmp
+*.key.tmp
+notebooks/databricks/.exports/
 *.pyc
 *.pyo
 *.pyd

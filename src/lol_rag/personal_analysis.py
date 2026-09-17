@@ -1,10 +1,67 @@
 from __future__ import annotations
 
+import json
 from collections import Counter
 from statistics import fmean
 from typing import Any
 
 from .config import REMAKE_SECONDS, STANDARD_POSITIONS
+
+ITEM_CATEGORIES = {
+    "completed_equipment",
+    "component",
+    "consumable",
+    "trinket",
+    "unknown",
+}
+
+
+def _item_metadata(document: dict[str, Any]) -> dict[str, Any] | None:
+    metadata = document.get("metadata")
+    if isinstance(metadata, dict):
+        return metadata
+    if isinstance(metadata, str) and metadata.strip():
+        try:
+            parsed = json.loads(metadata)
+        except json.JSONDecodeError:
+            return None
+        return parsed if isinstance(parsed, dict) else None
+    return None
+
+
+def classify_item_document(document: dict[str, Any] | None) -> dict[str, Any]:
+    """Classify one item from official Data Dragon metadata without name guessing."""
+
+    metadata = _item_metadata(document or {})
+    if not metadata:
+        return {"category": "unknown", "is_boots": False}
+    tags = {str(tag) for tag in metadata.get("tags") or []}
+    consumed = metadata.get("consumed") is True
+    if "Trinket" in tags:
+        return {"category": "trinket", "is_boots": False}
+    if consumed or "Consumable" in tags:
+        return {"category": "consumable", "is_boots": False}
+    is_boots = "Boots" in tags
+    if is_boots:
+        return {"category": "completed_equipment", "is_boots": True}
+    if metadata.get("into_items") or metadata.get("into"):
+        return {"category": "component", "is_boots": False}
+    return {"category": "completed_equipment", "is_boots": False}
+
+
+def build_item_catalog(documents: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    catalog: dict[str, dict[str, Any]] = {}
+    for document in documents:
+        item_id = str(document.get("source_id") or "")
+        if not item_id:
+            continue
+        classification = classify_item_document(document)
+        catalog[item_id] = {
+            "item_id": item_id,
+            "item_name": str(document.get("title") or "") or None,
+            **classification,
+        }
+    return catalog
 
 
 def _duration_seconds(info: dict[str, Any]) -> float:
@@ -51,6 +108,19 @@ def _safe_participant(
     vision = int(participant.get("visionScore") or 0)
     objective_damage = int(participant.get("damageDealtToObjectives") or 0)
     gold = int(participant.get("goldEarned") or 0)
+    final_item_slots = []
+    for slot in range(7):
+        item_id = int(participant.get(f"item{slot}") or 0)
+        if item_id == 0:
+            continue
+        final_item_slots.append(
+            {
+                "slot": slot,
+                "item_id": str(item_id),
+                "is_trinket": slot == 6,
+                "is_consumable": None,
+            }
+        )
     return {
         "match_id": match_alias,
         "participant_id": int(participant.get("participantId") or 0),
@@ -78,6 +148,8 @@ def _safe_participant(
         "objective_damage": objective_damage,
         "objective_damage_per_min": _rate(objective_damage, duration_seconds),
         "game_duration_seconds": round(duration_seconds, 1),
+        "final_item_slots": final_item_slots,
+        "final_item_ids": [item["item_id"] for item in final_item_slots],
     }
 
 
@@ -152,6 +224,306 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         }
     )
     return result
+
+
+def build_final_item_statistics(
+    rows: list[dict[str, Any]],
+    item_names: dict[str, str] | None = None,
+    target_item_id: str | None = None,
+    item_catalog: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    item_names = item_names or {}
+    item_catalog = item_catalog or {}
+    valid = sorted(
+        (row for row in rows if not row.get("is_remake")),
+        key=lambda row: int(row.get("game_start_timestamp") or 0),
+        reverse=True,
+    )
+    match_counts: Counter[str] = Counter()
+    per_match: list[dict[str, Any]] = []
+    for row in valid:
+        slots = []
+        unique_ids: set[str] = set()
+        for item in row.get("final_item_slots") or []:
+            item_id = str(item.get("item_id") or "")
+            if not item_id:
+                continue
+            unique_ids.add(item_id)
+            slots.append(
+                {
+                    "slot": int(item.get("slot") or 0),
+                    "item_id": item_id,
+                    "item_name": item_names.get(item_id),
+                    "category": item_catalog.get(item_id, {}).get("category", "unknown"),
+                    "is_boots": bool(item_catalog.get(item_id, {}).get("is_boots")),
+                    "is_trinket": (
+                        item_catalog.get(item_id, {}).get("category") == "trinket"
+                        or bool(item.get("is_trinket"))
+                    ),
+                    "is_consumable": (
+                        item_catalog.get(item_id, {}).get("category") == "consumable"
+                    ),
+                }
+            )
+        match_counts.update(unique_ids)
+        per_match.append({"match_id": row["match_id"], "items": slots})
+
+    matches_analyzed = len(valid)
+    most_common = [
+        {
+            "item_id": item_id,
+            "item_name": item_names.get(item_id),
+            "category": item_catalog.get(item_id, {}).get("category", "unknown"),
+            "is_boots": bool(item_catalog.get(item_id, {}).get("is_boots")),
+            "matches_finished_with_item": count,
+            "final_inventory_rate": round(count / matches_analyzed, 4) if matches_analyzed else 0.0,
+        }
+        for item_id, count in sorted(
+            match_counts.items(),
+            key=lambda pair: (-pair[1], item_names.get(pair[0]) or pair[0]),
+        )
+    ]
+    target_count = match_counts.get(str(target_item_id), 0) if target_item_id else None
+    return {
+        "matches_analyzed": matches_analyzed,
+        "item_id": str(target_item_id) if target_item_id else None,
+        "item_name": item_names.get(str(target_item_id)) if target_item_id else None,
+        "matches_finished_with_item": target_count,
+        "final_inventory_rate": round(target_count / matches_analyzed, 4)
+        if target_item_id and matches_analyzed
+        else (0.0 if target_item_id else None),
+        "per_match_final_items": per_match,
+        "most_common_final_items": most_common,
+    }
+
+
+def _timeline_events(timeline: dict[str, Any]) -> list[dict[str, Any]]:
+    events = [
+        event
+        for frame in timeline.get("info", {}).get("frames", [])
+        for event in frame.get("events", [])
+        if event.get("type") in {"ITEM_PURCHASED", "ITEM_SOLD", "ITEM_DESTROYED", "ITEM_UNDO"}
+    ]
+    return sorted(events, key=lambda event: int(event.get("timestamp") or 0))
+
+
+def _display_seconds(seconds: int | float | None) -> str | None:
+    if seconds is None:
+        return None
+    total = max(0, int(round(float(seconds))))
+    return f"{total // 60}분 {total % 60}초"
+
+
+def item_purchase_events(timeline: dict[str, Any], participant_id: int) -> dict[str, Any]:
+    purchases: list[dict[str, Any]] = []
+    uncertain_undos: list[dict[str, Any]] = []
+    event_counts: Counter[str] = Counter()
+    for event in _timeline_events(timeline):
+        if int(event.get("participantId") or 0) != int(participant_id):
+            continue
+        event_type = str(event.get("type") or "")
+        event_counts[event_type] += 1
+        timestamp_ms = int(event.get("timestamp") or 0)
+        if event_type == "ITEM_PURCHASED":
+            item_id = str(int(event.get("itemId") or 0))
+            if item_id != "0":
+                purchases.append(
+                    {
+                        "item_id": item_id,
+                        "timestamp_seconds": timestamp_ms // 1000,
+                        "undone": False,
+                    }
+                )
+            continue
+        if event_type != "ITEM_UNDO":
+            continue
+        before_id = str(int(event.get("beforeId") or 0))
+        after_id = str(int(event.get("afterId") or 0))
+        if before_id != "0" and after_id == "0":
+            matched = next(
+                (
+                    purchase
+                    for purchase in reversed(purchases)
+                    if purchase["item_id"] == before_id and not purchase["undone"]
+                ),
+                None,
+            )
+            if matched is not None:
+                matched["undone"] = True
+                continue
+        uncertain_undos.append(
+            {
+                "timestamp_seconds": timestamp_ms // 1000,
+                "before_id": before_id,
+                "after_id": after_id,
+                "status": "uncertain",
+            }
+        )
+    valid_purchases = [purchase for purchase in purchases if not purchase["undone"]]
+    return {
+        "purchases": valid_purchases,
+        "undone_purchase_count": len(purchases) - len(valid_purchases),
+        "uncertain_undos": uncertain_undos,
+        "event_counts": dict(event_counts),
+    }
+
+
+def build_item_purchase_statistics(
+    rows: list[dict[str, Any]],
+    timelines: dict[str, dict[str, Any]],
+    timeline_errors: dict[str, str] | None = None,
+    item_names: dict[str, str] | None = None,
+    target_item_id: str | None = None,
+    item_catalog: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    timeline_errors = timeline_errors or {}
+    item_names = item_names or {}
+    item_catalog = item_catalog or {}
+    valid = sorted(
+        (row for row in rows if not row.get("is_remake")),
+        key=lambda row: int(row.get("game_start_timestamp") or 0),
+        reverse=True,
+    )
+    item_match_counts: Counter[str] = Counter()
+    item_event_counts: Counter[str] = Counter()
+    first_times: dict[str, list[tuple[str, int]]] = {}
+    per_match_all: list[dict[str, Any]] = []
+    uncertain_undos: list[dict[str, Any]] = []
+
+    for row in valid:
+        alias = str(row["match_id"])
+        if alias not in timelines:
+            per_match_all.append(
+                {
+                    "match_id": alias,
+                    "timeline_status": timeline_errors.get(alias, "unavailable"),
+                    "purchases": [],
+                }
+            )
+            continue
+        parsed = item_purchase_events(timelines[alias], int(row.get("participant_id") or 0))
+        purchases = parsed["purchases"]
+        grouped: dict[str, list[int]] = {}
+        for purchase in purchases:
+            grouped.setdefault(purchase["item_id"], []).append(purchase["timestamp_seconds"])
+        for item_id, timestamps in grouped.items():
+            item_match_counts[item_id] += 1
+            item_event_counts[item_id] += len(timestamps)
+            first_times.setdefault(item_id, []).append((alias, min(timestamps)))
+        uncertain_undos.extend({"match_id": alias, **undo} for undo in parsed["uncertain_undos"])
+        per_match_all.append(
+            {
+                "match_id": alias,
+                "timeline_status": "loaded",
+                "purchases": [
+                    {
+                        "item_id": item_id,
+                        "item_name": item_names.get(item_id),
+                        "category": item_catalog.get(item_id, {}).get("category", "unknown"),
+                        "is_boots": bool(item_catalog.get(item_id, {}).get("is_boots")),
+                        "times_seconds": timestamps,
+                        "times_display": [_display_seconds(value) for value in timestamps],
+                    }
+                    for item_id, timestamps in sorted(grouped.items())
+                ],
+            }
+        )
+
+    matches_analyzed = len(valid)
+    loaded = sum(alias in timelines for alias in (row["match_id"] for row in valid))
+    final_counts = Counter(
+        item_id
+        for row in valid
+        for item_id in set(str(value) for value in row.get("final_item_ids") or [])
+    )
+    ranking = [
+        {
+            "item_id": item_id,
+            "item_name": item_names.get(item_id),
+            "category": item_catalog.get(item_id, {}).get("category", "unknown"),
+            "is_boots": bool(item_catalog.get(item_id, {}).get("is_boots")),
+            "matches_purchased": count,
+            "purchase_match_rate": round(count / matches_analyzed, 4) if matches_analyzed else 0.0,
+            "total_purchase_events": item_event_counts[item_id],
+            "matches_finished_with_item": final_counts.get(item_id, 0),
+        }
+        for item_id, count in sorted(
+            item_match_counts.items(),
+            key=lambda pair: (
+                -pair[1],
+                -item_event_counts[pair[0]],
+                item_names.get(pair[0]) or pair[0],
+            ),
+        )
+    ]
+    target = str(target_item_id) if target_item_id else None
+    target_first_times = first_times.get(target, []) if target else []
+    per_match_target = []
+    if target:
+        for row in per_match_all:
+            matching = next(
+                (item for item in row["purchases"] if item["item_id"] == target),
+                None,
+            )
+            per_match_target.append(
+                {
+                    "match_id": row["match_id"],
+                    "timeline_status": row["timeline_status"],
+                    "purchased": matching is not None,
+                    "purchase_times_seconds": matching["times_seconds"] if matching else [],
+                    "purchase_times_display": matching["times_display"] if matching else [],
+                }
+            )
+    average_seconds = (
+        round(fmean(value for _, value in target_first_times), 1) if target_first_times else None
+    )
+    by_category = {
+        category: [item for item in ranking if item["category"] == category]
+        for category in ITEM_CATEGORIES
+    }
+    boots = [item for item in ranking if item["is_boots"]]
+    return {
+        "matches_analyzed": matches_analyzed,
+        "item_id": target,
+        "item_name": item_names.get(target) if target else None,
+        "matches_purchased": item_match_counts.get(target, 0) if target else None,
+        "purchase_match_rate": round(item_match_counts.get(target, 0) / matches_analyzed, 4)
+        if target and matches_analyzed
+        else (0.0 if target else None),
+        "total_purchase_events": item_event_counts.get(target, 0) if target else None,
+        "first_purchase_average_seconds": average_seconds,
+        "first_purchase_average_display": _display_seconds(average_seconds),
+        "earliest_purchase": (
+            {
+                "match_id": min(target_first_times, key=lambda pair: pair[1])[0],
+                "seconds": min(value for _, value in target_first_times),
+                "display": _display_seconds(min(value for _, value in target_first_times)),
+            }
+            if target_first_times
+            else None
+        ),
+        "latest_purchase": (
+            {
+                "match_id": max(target_first_times, key=lambda pair: pair[1])[0],
+                "seconds": max(value for _, value in target_first_times),
+                "display": _display_seconds(max(value for _, value in target_first_times)),
+            }
+            if target_first_times
+            else None
+        ),
+        "per_match_purchase_times": per_match_target if target else per_match_all,
+        "matches_finished_with_item": final_counts.get(target, 0) if target else None,
+        "timeline_matches_loaded": loaded,
+        "timeline_matches_unavailable": matches_analyzed - loaded,
+        "most_common_purchased_items": ranking,
+        "most_common_completed_equipment": by_category["completed_equipment"],
+        "most_common_components": by_category["component"],
+        "most_common_consumables": by_category["consumable"],
+        "most_common_trinkets": by_category["trinket"],
+        "most_common_boots": boots,
+        "unknown_items": by_category["unknown"],
+        "uncertain_undos": uncertain_undos,
+    }
 
 
 def identify_position_opponent(

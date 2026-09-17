@@ -78,14 +78,17 @@ python -m ruff check .
 
 ## LoL RAG 및 개인 경기 Data Agent
 
-현지 담당 영역은 Azure AI Search 기반 공식정보 RAG와 개인 경기 Data Agent입니다. Riot ID와 태그라인으로 Queue 420 최근 경기를 조회하고, Python에서 개인 경기 통계를 결정적으로 계산한 뒤 질문을 `official_information`, `personal_match`, `mixed` 경로로 분류합니다. 공식정보 질문은 Azure AI Search의 741개 공식 문서를 검색하며, 개인·혼합 질문은 필요한 경우에만 공식 문서를 결합합니다. 최종 한국어 답변은 Azure OpenAI를 사용해 검색 및 계산 근거 안에서 생성합니다.
+현지 담당 영역은 Azure AI Search 기반 공식정보 RAG와 개인 경기 Data Agent입니다. Riot ID와 태그라인으로 Queue 420 최근 경기를 조회하고, Python에서 개인 경기 통계를 결정적으로 계산한 뒤 질문을 `official_information`, `personal_match`, `mixed` 경로로 분류합니다. 공식정보 질문은 Azure AI Search의 742개 공식 문서를 검색하며, 개인·혼합 질문은 필요한 경우에만 공식 문서를 결합합니다. 최종 한국어 답변은 Azure OpenAI를 사용해 검색 및 계산 근거 안에서 생성합니다.
 
 주요 기능은 다음과 같습니다.
 
 - 승패, K/D/A, CS·골드·피해·시야 등 개인 경기 통계 계산
 - 공식정보·개인 경기·혼합 질문 라우팅과 동일 사용자 경기 Context 재사용
 - 아이템 숫자 ID 및 한글 아이템 이름 검색
+- Match 최종 아이템과 Timeline 구매 이력·첫 구매 시간 분석
+- 완성 장비·조합 재료·소모품·장신구·신발 구매 빈도 분리
 - 공식 출처 Citation과 근거 부족 시 `NO_DATA`/`NEEDS_CLARIFICATION` 처리
+- Notebook과 웹 API에서 함께 쓰는 `answer_question()` 재사용 인터페이스
 - Databricks SOURCE Notebook 예제를 `notebooks/databricks/`에 보관
 
 검증 결과:
@@ -94,8 +97,13 @@ python -m ruff check .
 - 개인 경기 분석 QA: 6/6 PASS
 - 자유 질문 종합 라우팅: 30/30
 - 표적 회귀 테스트: 6/6 PASS
+- 개인 아이템 분석: 10/10 PASS
+- 아이템 카테고리 검증: 8/8 PASS
+- 최종 관련 단위 테스트: 110 passed
 
 실제 Secret과 API Key는 저장소에 포함하지 않습니다. 로컬 실행자는 환경변수에 Azure Search/OpenAI 설정을 제공해야 하며, Databricks 실행자는 자신의 Secret Scope와 환경별 Workspace 설정을 구성해야 합니다. 저장소의 Notebook은 환경 식별자와 Riot ID가 placeholder로 치환된 SOURCE 사본이며, 원본 실행 결과는 포함하지 않습니다.
+
+구조와 설정, `answer_question()` 및 FastAPI 연결 예시는 [docs/RAG_DATA_AGENT.md](docs/RAG_DATA_AGENT.md)를 참고하세요.
 
 ## Riot Games 고지
 

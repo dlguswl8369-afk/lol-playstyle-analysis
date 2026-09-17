@@ -1,6 +1,11 @@
 import pytest
 
-from lol_rag.routing import champion_candidate, classify_question, classify_question_reason
+from lol_rag.routing import (
+    champion_candidate,
+    classify_question,
+    classify_question_reason,
+    needs_item_timeline,
+)
 
 RIOT_ID = "test-player"
 TAG_LINE = "KR1"
@@ -129,3 +134,56 @@ def test_batch_qa_route_matrix(question: str, expected: str) -> None:
 
 def test_previous_period_is_not_treated_as_a_champion_name() -> None:
     assert champion_candidate("최근 5경기와 그 이전 경기의 성적을 비교해줘.") is None
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "여신의 눈물은 무슨 아이템이야?",
+        "여신의 눈물 왜 써?",
+        "루덴의 메아리 뭐야?",
+        "무한의 대검 효과를 알려줘.",
+        "아이템 6655가 뭐야?",
+    ],
+)
+def test_pure_item_questions_stay_official_with_player_context(question: str) -> None:
+    assert classify_question(question, riot_id=RIOT_ID, tag_line=TAG_LINE) == "official_information"
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "내가 최근 경기에서 여신의 눈물을 자주 샀어?",
+        "내가 여신의 눈물을 몇 분에 샀어?",
+        "최근 경기에서 내 최종 아이템은 뭐였어?",
+        "내가 최근 경기에서 가장 자주 산 아이템은 뭐야?",
+    ],
+)
+def test_personal_item_history_questions_use_personal_route(question: str) -> None:
+    assert classify_question(question, riot_id=RIOT_ID, tag_line=TAG_LINE) == "personal_match"
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "내가 최근 경기에서 가장 자주 산 장비는 뭐야?",
+        "내가 자주 산 소모품은 뭐야?",
+        "내가 가장 자주 사용한 장신구는 뭐야?",
+        "내가 최근 경기에서 가장 자주 산 조합 재료는 뭐야?",
+    ],
+)
+def test_personal_item_category_questions_use_personal_route(question: str) -> None:
+    assert classify_question(question, riot_id=RIOT_ID, tag_line=TAG_LINE) == "personal_match"
+    assert needs_item_timeline(question) is True
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "내가 자주 구매한 아이템의 효과도 알려줘.",
+        "내가 최근에 산 아이템이 내 챔피언에게 왜 어울리는지 알려줘.",
+        "내가 이 아이템을 왜 샀을까?",
+    ],
+)
+def test_personal_item_effect_questions_use_mixed_route(question: str) -> None:
+    assert classify_question(question, riot_id=RIOT_ID, tag_line=TAG_LINE) == "mixed"

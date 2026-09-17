@@ -1,5 +1,5 @@
 # Databricks notebook source
-# GitHub backup copy: configure YOUR_* placeholders before use; execution outputs are not included.
+# GitHub backup copy: configure <...> placeholders before use; execution outputs are not included.
 # MAGIC %md
 # MAGIC # LoL 개인 경기 분석 Data Agent QA
 # MAGIC
@@ -14,12 +14,12 @@ import json
 import re
 import urllib.request
 
-EXPECTED_WORKSPACE_ID = "YOUR_WORKSPACE_ID"
-EXPECTED_USER = "YOUR_DATABRICKS_USER"
-EXPECTED_RUNTIME_HOSTNAME = "YOUR_RUNTIME_HOSTNAME"
+EXPECTED_WORKSPACE_ID = "<WORKSPACE_ID>"
+EXPECTED_USER = "<DATABRICKS_USER>"
+EXPECTED_RUNTIME_HOSTNAME = "<DATABRICKS_RUNTIME_HOSTNAME>"
 EXPECTED_GIT_BRANCH = "feature/rag-personal-qa-prep"
-EXPECTED_GIT_HEAD = "YOUR_EXPECTED_GIT_HEAD"
-GIT_REPO_ID = "YOUR_GIT_REPO_ID"
+EXPECTED_GIT_HEAD = "<GIT_HEAD>"
+GIT_REPO_ID = "<GIT_REPO_ID>"
 
 ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
 workspace_id = str(ctx.workspaceId().get())
@@ -62,7 +62,7 @@ from statistics import fmean
 
 from azure.identity import ClientSecretCredential
 
-GIT_ROOT = Path("/Workspace/Users/YOUR_DATABRICKS_USER/lol-playstyle-analysis")
+GIT_ROOT = Path("/Workspace/Users/<DATABRICKS_USER>/lol-playstyle-analysis")
 SRC_ROOT = GIT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
@@ -72,16 +72,16 @@ from personal_qa.opponent_comparison import compare_with_position_opponent
 from personal_qa.query_router import classify_query
 from rag.official_query import build_official_search_plan, finalize_search_status
 
-DATA_ROOT = Path("/Workspace/Users/YOUR_DATABRICKS_USER/rag_hyunji_dev/input/personal_qa")
+DATA_ROOT = Path("/Workspace/Users/<DATABRICKS_USER>/<PERSONAL_RAG_FOLDER>/input/personal_qa")
 DATA_FILES = {
     "matches": DATA_ROOT / "match_summaries.jsonl",
     "participants": DATA_ROOT / "match_participants.jsonl",
     "targets": DATA_ROOT / "target_matches.jsonl",
 }
-SEARCH_ENDPOINT = "https://5dt-team3-lol-search-dev.search.windows.net"
+SEARCH_ENDPOINT = "<AZURE_SEARCH_ENDPOINT>"
 SEARCH_INDEX = "lol-official-rag-dev"
 SEARCH_API_VERSION = "2024-07-01"
-OPENAI_ENDPOINT = "https://5dt-team3-lol-openai-dev.openai.azure.com"
+OPENAI_ENDPOINT = "<AZURE_OPENAI_ENDPOINT>"
 OPENAI_DEPLOYMENT = "gpt-5-mini-rag"
 OPENAI_API_VERSION = "v1"
 
@@ -310,9 +310,9 @@ print(json.dumps({
 
 # COMMAND ----------
 
-tenant_id = dbutils.secrets.get("YOUR_SECRET_SCOPE", "tenant-id")
-client_id = dbutils.secrets.get("YOUR_SECRET_SCOPE", "client-id")
-client_secret = dbutils.secrets.get("YOUR_SECRET_SCOPE", "client-secret")
+tenant_id = dbutils.secrets.get("<DATABRICKS_SECRET_SCOPE>", "tenant-id")
+client_id = dbutils.secrets.get("<DATABRICKS_SECRET_SCOPE>", "client-id")
+client_secret = dbutils.secrets.get("<DATABRICKS_SECRET_SCOPE>", "client-secret")
 
 secret_diagnostics = {
     "tenant_id_nonempty": bool(tenant_id),

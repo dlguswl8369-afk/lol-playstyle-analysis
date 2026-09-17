@@ -2,8 +2,11 @@ from lol_rag.orchestrator import AgentDependencies, PlayerContext, answer_questi
 
 
 class _Search:
-    def __init__(self, credential):
+    def __init__(self, credential, **kwargs):
         self.calls = 0
+
+    def resolve_item_entity(self, question):
+        return None
 
 
 class _Generator:

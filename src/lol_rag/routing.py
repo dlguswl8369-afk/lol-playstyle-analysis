@@ -12,6 +12,7 @@ EXPLICIT_PERSONAL_PATTERNS = (
     r"(?:많이|자주|주로|모스트).*(?:한|하는|플레이|사용|챔피언)",
     r"상대\s*(?:라이너|정글러|서포터|탑|미드|원딜)",
     r"개선(?:점|해야)|고칠\s*점",
+    r"(?:샀|구매|최종\s*아이템|아이템\s*빌드|몇\s*분에)",
 )
 EXPLICIT_OFFICIAL_PATTERNS = (
     r"어떤\s*챔피언",
@@ -27,6 +28,8 @@ EXPLICIT_OFFICIAL_PATTERNS = (
     r"(?:챔피언|아이템|룬).*(?:추천|어울리|사용할\s*만한)",
     r"다음\s*경기.*(?:실천|개선).*방법",
     r"(?:역할|특징).*(?:알려|설명)|(?:역할과|주요\s*특징)",
+    r"^(?!(?:내가|내\s|최근|이번)).+?(?:무슨\s*아이템|왜\s*(?:써|사용)|효과(?:를)?\s*(?:알려|설명))",
+    r"아이템.*왜\s*샀",
 )
 GENERIC_ENTITY_QUESTION_PATTERN = (
     r"^(?!(?:내|나|최근|이번|플레이|승률|경기|전적|kda|시야|와드|개선))"
@@ -126,4 +129,19 @@ def needs_period_comparison(question: str) -> bool:
 def needs_timeline(question: str) -> bool:
     return needs_opponent_comparison(question) or bool(
         re.search(r"(?:10|15)\s*분|초반|라인전|cs\s*차이|골드\s*차이", question, re.IGNORECASE)
+    )
+
+
+def needs_item_timeline(question: str) -> bool:
+    return bool(
+        re.search(
+            r"몇\s*분에\s*(?:샀|구매)|"
+            r"(?:아이템|구매|샀|사고).*(?:자주|횟수|몇\s*분|언제|왜|효과)|"
+            r"(?:가장\s*자주|자주).*(?:산|구매한|사용한)\s*"
+            r"(?:아이템|장비|소모품|장신구|조합\s*재료)|"
+            r"(?:샀|구매).*(?:아이템|몇\s*분|언제)|"
+            r"자주\s*(?:샀|구매)",
+            question,
+            re.IGNORECASE,
+        )
     )

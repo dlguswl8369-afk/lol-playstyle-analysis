@@ -33,9 +33,19 @@ class SearchResult:
 
 
 class OfficialSearchClient:
-    def __init__(self, credential: Any, timeout_seconds: int = 30) -> None:
+    def __init__(
+        self,
+        credential: Any,
+        timeout_seconds: int = 30,
+        *,
+        item_cache: dict[str, Any] | None = None,
+    ) -> None:
         self._credential = credential
         self._timeout_seconds = timeout_seconds
+        self._item_cache = item_cache if item_cache is not None else {}
+        self._item_cache.setdefault("titles", {})
+        self._item_cache.setdefault("ids", {})
+        self._item_cache.setdefault("misses", set())
         self.calls = 0
 
     @property
@@ -79,6 +89,7 @@ class OfficialSearchClient:
                 "patch_version",
                 "applicable_modes",
                 "source_id",
+                "metadata",
             ]
         )
 
@@ -117,6 +128,9 @@ class OfficialSearchClient:
             body["filter"] = search_filter
         response = self._post(body)
         documents = list(response.get("value", []))[:SEARCH_CONTEXT_LIMIT]
+        self._cache_item_documents(
+            [document for document in documents if document.get("document_type") == "item"]
+        )
         if special:
             by_source = {str(doc.get("source_id")): doc for doc in documents}
             documents = [
@@ -152,13 +166,24 @@ class OfficialSearchClient:
         if re.search(r"아이템\s*\d+", question, re.IGNORECASE):
             return None
         if re.search(
+            r"(?:가장|제일)?\s*자주\s*(?:산|구매한|사용한)\s*"
+            r"(?:아이템|장비|소모품|장신구|조합\s*재료)|"
+            r"자주\s*구매한\s*아이템|최종\s*아이템|아이템\s*빌드|이\s*아이템",
+            question,
+            re.IGNORECASE,
+        ):
+            return None
+        if re.search(
             r"(?:룬|소환사\s*주문|패치|queue|map|게임\s*모드|어떤\s*챔피언이야)",
             question,
             re.IGNORECASE,
         ):
             return None
         patterns = (
+            r"^(?:내가|내)\s*(?:최근\s*경기에서\s*)?(?P<name>.+?)(?:을|를)\s*(?:자주\s*)?(?:샀|구매|몇\s*분)",
             r"^(?:아이템\s*)?(?P<name>.+?)(?:은|는)\s*어떤\s*챔피언에게\s*어울",
+            r"^(?:아이템\s*)?(?P<name>.+?)(?:은|는|이|가)?\s*(?:무슨\s*아이템|왜\s*(?:써|사용))",
+            r"^(?:아이템\s*)?(?P<name>.+?)(?:은|는|이|가)?\s*효과(?:를)?\s*(?:알려|설명)",
             r"^(?:아이템\s*)?(?P<name>.+?)(?:은|는|이|가)?\s*(?:뭐야|무엇(?:이야|인가))",
         )
         for pattern in patterns:
@@ -172,10 +197,35 @@ class OfficialSearchClient:
     def _normalized_entity(value: str) -> str:
         return re.sub(r"[^0-9A-Za-z가-힣]", "", value).casefold()
 
+    def _cache_item_documents(self, documents: list[dict[str, Any]]) -> None:
+        for document in documents:
+            source_id = str(document.get("source_id") or "")
+            normalized_title = self._normalized_entity(str(document.get("title") or ""))
+            if source_id:
+                self._item_cache["ids"][source_id] = document
+            if normalized_title:
+                self._item_cache["titles"][normalized_title] = document
+
+    @staticmethod
+    def _item_filter(source_ids: list[str]) -> str:
+        clauses = [
+            f"source_id eq '{source_id.replace(chr(39), chr(39) * 2)}'" for source_id in source_ids
+        ]
+        if len(clauses) == 1:
+            return "document_type eq 'item' and " + clauses[0]
+        return "document_type eq 'item' and (" + " or ".join(clauses) + ")"
+
     def resolve_item_entity(self, question: str) -> SearchResult | None:
         candidate = self.item_name_candidate(question)
         if candidate is None:
             return None
+        candidate_normalized = self._normalized_entity(candidate)
+        cached = self._item_cache["titles"].get(candidate_normalized)
+        if cached:
+            source_id = str(cached.get("source_id") or "")
+            return SearchResult("*", self._item_filter([source_id]), [cached])
+        if candidate_normalized in self._item_cache["misses"]:
+            return SearchResult(candidate, "document_type eq 'item'", [])
         discovery_filter = "document_type eq 'item'"
         discovery = self._post(
             {
@@ -187,14 +237,17 @@ class OfficialSearchClient:
                 "searchMode": "any",
             }
         )
+        discovered_documents = list(discovery.get("value", []))
+        self._cache_item_documents(discovered_documents)
         question_normalized = self._normalized_entity(question)
         matches = [
             document
-            for document in discovery.get("value", [])
+            for document in discovered_documents
             if self._normalized_entity(str(document.get("title") or ""))
             and self._normalized_entity(str(document.get("title") or "")) in question_normalized
         ]
         if not matches:
+            self._item_cache["misses"].add(candidate_normalized)
             return SearchResult(candidate, discovery_filter, [])
         exact = max(
             matches,
@@ -203,8 +256,7 @@ class OfficialSearchClient:
         source_id = str(exact.get("source_id") or "")
         if not source_id:
             return SearchResult(candidate, discovery_filter, [])
-        escaped_source_id = source_id.replace("'", "''")
-        exact_filter = f"document_type eq 'item' and source_id eq '{escaped_source_id}'"
+        exact_filter = self._item_filter([source_id])
         response = self._post(
             {
                 "search": "*",
@@ -216,7 +268,44 @@ class OfficialSearchClient:
             }
         )
         documents = list(response.get("value", []))[:SEARCH_CONTEXT_LIMIT]
+        self._cache_item_documents(documents)
         return SearchResult("*", exact_filter, documents)
+
+    def resolve_items_by_ids(self, source_ids: list[str]) -> SearchResult:
+        ordered_ids = list(dict.fromkeys(str(value) for value in source_ids if str(value)))
+        cached_documents = {
+            source_id: self._item_cache["ids"][source_id]
+            for source_id in ordered_ids
+            if source_id in self._item_cache["ids"]
+        }
+        missing_ids = [source_id for source_id in ordered_ids if source_id not in cached_documents]
+        search_filter = self._item_filter(ordered_ids) if ordered_ids else "document_type eq 'item'"
+        if missing_ids:
+            response = self._post(
+                {
+                    "search": "*",
+                    "filter": self._item_filter(missing_ids),
+                    "top": len(missing_ids),
+                    "select": self._select(),
+                    "queryType": "simple",
+                    "searchMode": "any",
+                }
+            )
+            fetched = list(response.get("value", []))
+            self._cache_item_documents(fetched)
+            cached_documents.update(
+                {
+                    str(document.get("source_id") or ""): document
+                    for document in fetched
+                    if str(document.get("source_id") or "")
+                }
+            )
+        documents = [
+            cached_documents[source_id]
+            for source_id in ordered_ids
+            if source_id in cached_documents
+        ]
+        return SearchResult("*", search_filter, documents)
 
     def resolve_champion_name(self, candidate: str) -> tuple[str | None, list[dict[str, Any]]]:
         candidate = candidate.strip()
