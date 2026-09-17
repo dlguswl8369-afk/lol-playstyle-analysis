@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import html
+import json
 import re
 from dataclasses import dataclass, field
 from time import perf_counter
@@ -159,6 +161,166 @@ def _needs_stat_derived_champion_context(question: str) -> bool:
         and re.search(r"가장|제일|많이|자주|주로|모스트", question)
         and re.search(r"특징|스킬|역할|공식|플레이\s*방법", question)
         and not re.search(r"추천|아이템|룬|소환사\s*주문|패치", question)
+    )
+
+
+def _document_metadata(document: dict[str, Any]) -> dict[str, Any]:
+    metadata = document.get("metadata")
+    if isinstance(metadata, dict):
+        return metadata
+    if isinstance(metadata, str) and metadata.strip():
+        try:
+            parsed = json.loads(metadata)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def _clean_official_text(value: Any, limit: int = 420) -> str:
+    text = html.unescape(str(value or ""))
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text).strip(" -\n\t")
+    if not text:
+        return ""
+    if len(text) > limit:
+        shortened = text[:limit].rsplit(" ", 1)[0].rstrip(" ,;:")
+        text = f"{shortened}."
+    elif text[-1] not in ".!?。":
+        text += "."
+    return text
+
+
+def _metadata_text(metadata: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = metadata.get(key)
+        if isinstance(value, str) and value.strip():
+            return _clean_official_text(value)
+    return ""
+
+
+def _deterministic_official_information(documents: list[dict[str, Any]]) -> str:
+    if not documents:
+        return ""
+    document = documents[0]
+    document_type = str(document.get("document_type") or "")
+    title = str(document.get("title") or "공식 문서 대상")
+    metadata = _document_metadata(document)
+    parts: list[str] = []
+
+    tags = metadata.get("tags")
+    if isinstance(tags, list):
+        safe_tags = [str(tag).strip() for tag in tags if str(tag).strip()]
+        if safe_tags:
+            label = "공식 역할·태그" if document_type == "champion" else "공식 태그"
+            parts.append(f"{title}의 {label}는 {', '.join(safe_tags)}입니다.")
+
+    if document_type == "champion":
+        introduction = _metadata_text(metadata, "blurb", "introduction", "description", "lore")
+        if introduction:
+            parts.append(f"공식 소개: {introduction}")
+        passive = metadata.get("passive")
+        if isinstance(passive, dict):
+            passive_name = str(passive.get("name") or "기본 지속 효과")
+            passive_description = _clean_official_text(passive.get("description"))
+            if passive_description:
+                parts.append(f"기본 지속 효과 {passive_name}: {passive_description}")
+        spells = metadata.get("spells")
+        if isinstance(spells, list):
+            spell_names = [
+                str(spell.get("name") or "").strip()
+                for spell in spells
+                if isinstance(spell, dict) and str(spell.get("name") or "").strip()
+            ]
+            if spell_names:
+                parts.append(f"공식 스킬 이름은 {', '.join(spell_names[:4])}입니다.")
+    elif document_type == "item":
+        stats = metadata.get("stats")
+        if isinstance(stats, dict) and stats:
+            rendered_stats = [f"{key} {value}" for key, value in stats.items()]
+            parts.append(f"{title}의 공식 능력치는 {', '.join(rendered_stats[:6])}입니다.")
+        effect = _metadata_text(metadata, "description", "plaintext", "effect")
+        if effect:
+            parts.append(f"공식 효과: {effect}")
+        gold = metadata.get("gold")
+        if isinstance(gold, dict) and gold.get("total") is not None:
+            parts.append(f"공식 총 가격은 {gold['total']}입니다.")
+
+    content = _clean_official_text(document.get("content"))
+    if content:
+        parts.append(f"{title} 공식 문서 설명: {content}")
+    return " ".join(parts)
+
+
+def _clean_generated_section(value: Any) -> str:
+    text = str(value or "").strip()
+    text = re.split(r"(?i)\bcitations?\s*:", text, maxsplit=1)[0]
+    text = re.split(r'\{\s*["\']document_id["\']\s*:', text, maxsplit=1)[0]
+    text = re.sub(r"[\s\[\]{},]+$", "", text).strip()
+    if text and text[-1] not in ".!?。":
+        text += "."
+    return text
+
+
+def _deterministic_personal_analysis(evidence: dict[str, Any]) -> str:
+    statistics = evidence.get("statistics") or {}
+    top = (evidence.get("most_played_champions") or [{}])[0]
+    champion_name = top.get("champion_name")
+    champion_matches = top.get("match_count")
+    match_count = statistics.get("match_count")
+    win_rate = statistics.get("win_rate")
+    parts = []
+    if champion_name and champion_matches is not None:
+        parts.append(
+            f"가장 많이 플레이한 챔피언은 {champion_name}이며 "
+            f"{champion_matches}경기입니다."
+        )
+    if match_count is not None and win_rate is not None:
+        win_rate_percent = round(float(win_rate) * 100, 2)
+        parts.append(f"유효 {match_count}경기의 승률은 {win_rate_percent}%입니다.")
+    return " ".join(parts) or "개인 경기 통계가 계산되었습니다."
+
+
+def _compose_mixed_answer(
+    generated: dict[str, Any],
+    evidence: dict[str, Any],
+    official_documents: list[dict[str, Any]],
+) -> tuple[str, dict[str, str], str]:
+    personal = _clean_generated_section(generated.get("personal_analysis"))
+    if not personal:
+        personal = _deterministic_personal_analysis(evidence)
+    official = _deterministic_official_information(official_documents)
+    combined = _clean_generated_section(generated.get("combined_advice"))
+    if not combined:
+        combined = "개인 경기 통계와 위 공식정보를 함께 참고해 다음 경기를 준비할 수 있습니다."
+    sections = {
+        "personal_analysis": personal,
+        "official_information": official,
+        "combined_advice": combined,
+    }
+    heading = (
+        "공식 챔피언 특징"
+        if official_documents[0].get("document_type") == "champion"
+        else "공식 아이템 정보"
+    )
+    answer = (
+        f"개인 경기 분석\n{personal}\n\n{heading}\n{official}\n\n종합\n{combined}"
+    )
+    return answer, sections, "model_with_deterministic_official_fallback"
+
+
+def _mixed_answer_is_valid(
+    answer: str,
+    sections: dict[str, str],
+    citations: list[dict[str, Any]],
+    context_ids: set[str],
+) -> bool:
+    return bool(
+        all(sections.values())
+        and citations
+        and all(str(citation.get("document_id")) in context_ids for citation in citations)
+        and not re.search(r"(?i)citations?\s*:|[\[{]\s*$|document_id|source_url", answer)
+        and answer.rstrip().endswith((".", "!", "?", "。"))
     )
 
 
@@ -698,6 +860,27 @@ def answer_question(
         ]
         if route == "mixed" and not grounded_citations:
             grounded_citations = safe_citations(official_documents)
+        if route == "mixed":
+            answer, sections, generation_mode = _compose_mixed_answer(
+                generated,
+                evidence or {},
+                official_documents,
+            )
+            if evidence is not None:
+                evidence["generation_metadata"] = {"generation_mode": generation_mode}
+            status = (
+                "PASS"
+                if _mixed_answer_is_valid(answer, sections, grounded_citations, context_ids)
+                else "PARTIAL"
+            )
+            result.update(
+                status=status,
+                answer=answer,
+                statistics=evidence or {},
+                citations=grounded_citations,
+                official_documents=safe_citations(official_documents),
+            )
+            return result
         result.update(
             status="PASS",
             answer=str(generated.get("answer") or ""),

@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 import inspect
+import json
 
+from lol_rag.answer_generation import AnswerGenerator
 from lol_rag.official_search import OfficialSearchClient, SearchResult
-from lol_rag.orchestrator import AgentDependencies, PlayerContext, answer_question
+from lol_rag.orchestrator import (
+    AgentDependencies,
+    PlayerContext,
+    _deterministic_official_information,
+    answer_question,
+)
 
 
 def _row(champion_name: str = "RenataGlasc") -> dict:
@@ -64,6 +71,10 @@ class _Search:
                     "title": "레나타 글라스크",
                     "content": "공식 역할과 특징",
                     "source_url": "https://example.invalid/champion",
+                    "metadata": {
+                        "tags": ["Support", "Mage"],
+                        "blurb": "아군을 강화하고 적을 방해하는 공식 소개입니다.",
+                    },
                 }
             ]
         return SearchResult(
@@ -86,7 +97,15 @@ class _Generator:
         self.calls += 1
         self.__class__.last_statistics = kwargs["statistics"]
         self.__class__.last_official_context = kwargs["official_context"]
-        return {"answer": "개인 성적과 공식 특징을 함께 설명했습니다.", "citations": []}
+        return {
+            "personal_analysis": "개인 통계만 설명했습니다",
+            "official_information": "",
+            "combined_advice": (
+                "통계와 공식정보를 함께 봅니다\n"
+                'citations: [{"document_id":"not-in-answer"}]{'
+            ),
+            "citations": [],
+        }
 
 
 def test_stat_derived_champion_uses_exact_search_and_grounded_citation(monkeypatch):
@@ -114,6 +133,17 @@ def test_stat_derived_champion_uses_exact_search_and_grounded_citation(monkeypat
         "document_type eq 'champion' and source_id eq 'RenataGlasc'"
     )
     assert result["citations"][0]["document_id"] == "ddragon:champion:RenataGlasc"
+    assert "개인 경기 분석" in result["answer"]
+    assert "공식 챔피언 특징" in result["answer"]
+    assert "Support, Mage" in result["answer"]
+    assert "공식 소개" in result["answer"]
+    assert "citations:" not in result["answer"]
+    assert "document_id" not in result["answer"]
+    assert not result["answer"].rstrip().endswith(("{", "["))
+    assert result["statistics"]["generation_metadata"]["generation_mode"] == (
+        "model_with_deterministic_official_fallback"
+    )
+    assert result["usage"]["openai_calls"] == 1
     assert _Generator.last_statistics["most_played_champions"][0]["champion_name"] == (
         "RenataGlasc"
     )
@@ -159,3 +189,73 @@ def test_implementation_does_not_hardcode_runtime_champion() -> None:
     import lol_rag.orchestrator as module
 
     assert "Seraphine" not in inspect.getsource(module)
+
+
+def test_item_official_fallback_uses_only_document_fields() -> None:
+    text = _deterministic_official_information(
+        [
+            {
+                "document_type": "item",
+                "title": "테스트 마법봉",
+                "content": "검색 본문",
+                "metadata": {
+                    "tags": ["SpellDamage", "Mana"],
+                    "stats": {"FlatMagicDamageMod": 80},
+                    "description": "스킬 적중 시 추가 마법 피해를 줍니다.",
+                    "gold": {"total": 2800},
+                },
+            }
+        ]
+    )
+
+    assert "테스트 마법봉" in text
+    assert "FlatMagicDamageMod 80" in text
+    assert "추가 마법 피해" in text
+    assert "2800" in text
+
+
+class _Token:
+    token = "test-token"
+
+
+class _Credential:
+    def get_token(self, scope):
+        return _Token()
+
+
+class _Response:
+    def __init__(self, payload):
+        self.payload = payload
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        return False
+
+    def read(self):
+        return json.dumps(self.payload).encode("utf-8")
+
+
+def test_mixed_invalid_json_returns_fallback_signal_without_retry(monkeypatch):
+    monkeypatch.setattr("lol_rag.answer_generation.OPENAI_ENDPOINT", "https://example.invalid")
+    payload = {
+        "status": "completed",
+        "usage": {"input_tokens": 10, "output_tokens": 5},
+        "output": [
+            {
+                "type": "message",
+                "content": [{"type": "output_text", "text": '{"personal_analysis":'}],
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        "lol_rag.answer_generation.urllib.request.urlopen",
+        lambda request, timeout: _Response(payload),
+    )
+    generator = AnswerGenerator(_Credential())
+
+    result = generator.generate("질문", "mixed", {"statistics": {}}, [{}])
+
+    assert result["generation_error"] == "openai_response_invalid_json"
+    assert generator.calls == 1
