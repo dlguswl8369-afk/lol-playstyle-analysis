@@ -332,6 +332,30 @@ class OfficialSearchClient:
         )
         return (str(exact.get("source_id")) if exact else None), documents
 
+    def resolve_champion_by_source_id(self, source_id: str) -> SearchResult:
+        """Fetch one canonical champion document by its Riot source identifier."""
+
+        escaped_source_id = source_id.strip().replace("'", "''")
+        search_filter = (
+            "document_type eq 'champion' and "
+            f"source_id eq '{escaped_source_id}'"
+        )
+        response = self._post(
+            {
+                "search": "*",
+                "filter": search_filter,
+                "top": 1,
+                "select": self._select(),
+                "queryType": "simple",
+                "searchMode": "any",
+            }
+        )
+        return SearchResult(
+            query="*",
+            search_filter=search_filter,
+            documents=list(response.get("value", []))[:1],
+        )
+
 
 def safe_citations(documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [

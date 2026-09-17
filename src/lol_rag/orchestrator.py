@@ -151,6 +151,17 @@ def _top_champion_from_context(context: PlayerContext | None) -> str | None:
     return sorted(counts, key=lambda name: (-counts[name], name.casefold()))[0]
 
 
+def _needs_stat_derived_champion_context(question: str) -> bool:
+    """Return whether a mixed question needs the player's top champion document."""
+
+    return bool(
+        "챔피언" in question
+        and re.search(r"가장|제일|많이|자주|주로|모스트", question)
+        and re.search(r"특징|스킬|역할|공식|플레이\s*방법", question)
+        and not re.search(r"추천|아이템|룬|소환사\s*주문|패치", question)
+    )
+
+
 def _is_vision_summary_question(question: str) -> bool:
     return bool(re.search(r"시야\s*점수|시야.*(?:어땠|평균)|와드.*(?:설치|제거)", question))
 
@@ -418,7 +429,6 @@ def answer_question(
             search_question = question
             search_result = None
             top_champion = _top_champion_from_context(player_context)
-            recommendation_target = bool(re.search(r"아이템|룬|주문|패치", question))
             if item_search_result is not None:
                 search_result = item_search_result
             elif route == "official_information":
@@ -434,15 +444,12 @@ def answer_question(
                     "체력 방어 마법 저항 보호막 생존",
                     "item",
                 ).documents
-            elif route == "mixed" and top_champion and not recommendation_target:
-                resolved_name, documents = search.resolve_champion_name(top_champion)
-                official_documents = sorted(
-                    documents,
-                    key=lambda document: (
-                        str(document.get("source_id") or "").casefold()
-                        != str(resolved_name or "").casefold()
-                    ),
-                )
+            elif route == "mixed" and _needs_stat_derived_champion_context(question):
+                if top_champion:
+                    search_result = search.resolve_champion_by_source_id(top_champion)
+                    official_documents = search_result.documents
+                    result["search_query"] = search_result.query
+                    result["search_filter"] = search_result.search_filter
             else:
                 if (
                     route == "mixed"
@@ -530,6 +537,15 @@ def answer_question(
                     statistics=evidence,
                 )
                 return result
+
+            if route == "mixed" and _needs_stat_derived_champion_context(question):
+                ranked_champions = evidence["most_played_champions"]
+                if ranked_champions and not official_documents:
+                    statistics_champion = str(ranked_champions[0]["champion_name"])
+                    search_result = search.resolve_champion_by_source_id(statistics_champion)
+                    official_documents = search_result.documents
+                    result["search_query"] = search_result.query
+                    result["search_filter"] = search_result.search_filter
 
             if not evidence.get("statistics"):
                 result.update(
@@ -660,6 +676,14 @@ def answer_question(
                 )
                 return result
 
+        if route == "mixed" and not official_documents:
+            result.update(
+                status="PARTIAL",
+                answer="개인 경기 통계는 확인했지만 요청한 공식정보 문서를 찾지 못했습니다.",
+                statistics=evidence or {},
+            )
+            return result
+
         generated = generator.generate(
             question=question,
             route=route,
@@ -672,6 +696,8 @@ def answer_question(
             for citation in generated.get("citations", [])
             if str(citation.get("document_id")) in context_ids
         ]
+        if route == "mixed" and not grounded_citations:
+            grounded_citations = safe_citations(official_documents)
         result.update(
             status="PASS",
             answer=str(generated.get("answer") or ""),
