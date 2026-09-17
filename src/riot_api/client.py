@@ -7,10 +7,28 @@ import httpx
 
 
 class RiotAPIError(RuntimeError):
-    def __init__(self, message: str, status_code: int | None = None, retries: int = 0):
+    def __init__(
+        self,
+        message: str,
+        status_code: int | None = None,
+        retries: int = 0,
+        exception_classes: tuple[str, ...] = (),
+    ):
         super().__init__(message)
         self.status_code = status_code
         self.retries = retries
+        self.exception_classes = exception_classes
+        self.exception_class = exception_classes[0] if exception_classes else None
+        self.inner_exception_class = exception_classes[1] if len(exception_classes) > 1 else None
+
+
+def _exception_classes(exc: BaseException) -> tuple[str, ...]:
+    classes: list[str] = []
+    current: BaseException | None = exc
+    while current is not None and len(classes) < 8:
+        classes.append(current.__class__.__name__)
+        current = current.__cause__ or current.__context__
+    return tuple(classes)
 
 
 class RiotAPIClient:
@@ -23,6 +41,7 @@ class RiotAPIClient:
         timeout: float = 15.0,
         request_interval: float = 0.15,
         max_retries: int = 3,
+        trust_env: bool = True,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         if not api_key:
@@ -33,6 +52,7 @@ class RiotAPIClient:
         self._client = httpx.Client(
             headers={"X-Riot-Token": api_key},
             timeout=timeout,
+            trust_env=trust_env,
             transport=transport,
         )
 
@@ -53,10 +73,13 @@ class RiotAPIClient:
                 time.sleep(self.request_interval - elapsed)
             try:
                 response = self._client.get(url, params=params)
-            except httpx.RequestError as exc:
+            except httpx.HTTPError as exc:
                 if retries >= self.max_retries:
+                    exception_classes = _exception_classes(exc)
                     raise RiotAPIError(
-                        f"Riot API에 연결하지 못했습니다: {exc.__class__.__name__}", retries=retries
+                        "Riot API에 연결하지 못했습니다.",
+                        retries=retries,
+                        exception_classes=exception_classes,
                     ) from exc
                 time.sleep(2**retries)
                 retries += 1
