@@ -10,7 +10,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@700;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/style.css?v=20260922-3">
 </head>
 
 <body>
@@ -26,6 +26,7 @@
             <nav class="nav-menu">
                 <a href="#" id="styleLink"><b>플레이스타일</b></a>
                 <a href="#" id="searchLink"><b>전적 분석</b></a>
+                <a href="#" id="reportLink"><b>코칭 리포트</b></a>
             </nav>
             <button class="btn-outline">로그인</button>
             <button id="themeToggle" class="btn-outline" type="button">일반 모드로 전환</button>
@@ -56,19 +57,19 @@
 
             <section class="features">
                 <article class="feature gold" data-target="metricsPanel">
-                    <p class="feature-num">01 · LANE</p>
-                    <h3>라인전 손익 계산서</h3>
-                    <p><b>cs, 골드격차, 딜량을 상대 라이너와 비교해 라인전의 손익을 계산해줍니다.</b></p>
+                    <p class="feature-num">01 · BENCHMARK</p>
+                    <h3>조건별 지표 비교</h3>
+                    <p><b>Databricks가 포지션·티어·성장 곡선에 맞는 벤치마크와 최근 지표를 비교합니다.</b></p>
                 </article>
                 <article class="feature teal" data-target="stylePanel">
-                <p class="feature-num">02 · VISION</p>
-                <h3>시야와 오브젝트 관여</h3>
-                <p><b>와드 설치 위치와 드래곤 · 전령 스폰 전 30초의 동선을 겹쳐 보며 놓친 스노우볼 구간을 찾습니다.</b></p>
+                <p class="feature-num">02 · PLAYSTYLE</p>
+                <h3>ML 플레이스타일 분석</h3>
+                <p><b>최근 경기의 주 포지션과 학습된 군집 모델을 바탕으로 대표 플레이스타일을 분류합니다.</b></p>
             </article>
-            <article class="feature purple" data-target="trendPanel">
-                <p class="feature-num">03 · TILT</p>
-                <h3>연패 구간 심리 추적</h3>
-                <p><b>연속 판수에 따른 데스 증가율과 무리한 진입 빈도를 추적해 멈춰야 할 타이밍을 알려줍니다.</b></p>
+            <article class="feature purple" data-view="report">
+                <p class="feature-num">03 · COACHING</p>
+                <h3>검증된 코칭 리포트</h3>
+                <p><b>분석 엔진이 선정한 강점·개선점·우선 목표만 Azure OpenAI가 자연어로 설명합니다.</b></p>
             </article>
         </section>
 
@@ -112,11 +113,11 @@
                         <div class="panel-head">
                             <h2>CORE METRICS</h2>
                             <span class="line"></span>
-                            <small>티어 평균 대비</small>
+                            <small id="metricsMode">최근 경기 실측 평균</small>
                         </div>
 
                         <div id="metrics"></div>
-                        <p class="note">점선 세로선 = 같은 티어 평균값</p>
+                        <p class="note" id="metricsNote">Riot 경기 데이터의 단순 평균이며 평가 문구를 생성하지 않습니다.</p>
                     </section>
 
                     <section class="panel panel-teal" id="nextGamePanel">
@@ -135,12 +136,9 @@
 
                     <div id="radar" class="chart-box"></div>
 
-                    <div class="legend">
-                        <span><i class="teal"></i>내 플레이</span>
-                        <span><i class="dash"></i>티어 평균</span>
-                    </div>
+                    <div class="legend"><span><i class="teal"></i><b>Databricks ML 분석 결과</b></span></div>
 
-                    <button type="button" class="style-save" id="styleSaveBtn">저장하기</button>
+                    <button type="button" class="style-save" id="styleSaveBtn" disabled>리포트 생성 후 저장</button>
                 </section>
             </div>
 
@@ -161,12 +159,12 @@
                     <small id="coachTarget"></small>
                 </div>
                 <form class="coach-form" id="coachForm">
-                    <input id="coachQuestion" type="text" autocomplete="off"
-                        placeholder="예) 내 시야 점수 어떻게 올려? / 몰락한 왕의 검은 언제 올려?">
-                    <button type="submit" id="coachBtn">질문</button>
+                    <p class="coach-form-copy">최근 전적을 Databricks 분석 파이프라인으로 보내 코칭 리포트를 생성합니다.</p>
+                    <button type="submit" id="coachBtn">코칭 리포트 생성</button>
+                    <button type="button" id="reportSaveBtn" disabled>저장</button>
                 </form>
                 <div id="coachAnswer" class="coach-answer">
-                    <p class="empty">궁금한 점을 물어보세요. 최근 전적과 공식 문서를 함께 참고해 답변합니다.</p>
+                    <p class="empty">소환사를 검색한 뒤 코칭 리포트를 생성하세요.</p>
                 </div>
             </section>
 
@@ -189,6 +187,20 @@
                     <small>검색한 소환사의 플레이스타일이 저장됩니다</small>
                 </div>
                 <div id="styleVault" class="style-vault"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- ========== 코칭 리포트 보관함 ========== -->
+    <main id="reportView" hidden>
+        <div class="result-body">
+            <section class="panel">
+                <div class="panel-head">
+                    <h2>COACHING REPORT</h2>
+                    <span class="line"></span>
+                    <small>저장한 코칭 리포트 (최대 10개)</small>
+                </div>
+                <div id="reportVault" class="report-vault"></div>
             </section>
         </div>
     </main>
@@ -221,9 +233,9 @@
         <a href="#">팀원 소개</a>
     </footer>
 
-    <script src="./js/state.js"></script>
-    <script src="./js/services/api.js"></script>
-    <script src="./js/app.js"></script>
+    <script src="./js/state.js?v=20260922-3"></script>
+    <script src="./js/services/api.js?v=20260922-3"></script>
+    <script src="./js/app.js?v=20260922-3"></script>
 </body>
 
 </html>

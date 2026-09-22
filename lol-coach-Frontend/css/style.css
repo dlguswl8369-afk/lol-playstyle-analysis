@@ -380,6 +380,34 @@ a { color: inherit; text-decoration: none; }
     justify-content: center;
 }
 
+.style-result-head,
+.style-result-row {
+    width: 100%;
+}
+.style-result-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.style-result-head strong { color: var(--cream); font-size: 16px; }
+.style-result-head span { color: var(--muted); font-size: 11px; }
+.style-result-row { margin: 14px 0; }
+.style-result-row > div:first-child {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 7px;
+}
+.style-result-row strong { color: var(--text); font-size: 13px; }
+.style-result-row span { color: var(--teal); font-size: 12px; }
+.style-result-bar { height: 7px; background: var(--bar-track); }
+.style-result-bar i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #087b82, var(--teal));
+}
+
 .play-style-panel .style-save {
     margin-top: 14px;
 }
@@ -650,8 +678,14 @@ a { color: inherit; text-decoration: none; }
     20% { box-shadow: 0 0 0 2px var(--gold); }
 }
 
-/* ===== 코칭 리포트 (RAG) ===== */
+/* ===== Databricks 코칭 리포트 ===== */
 .coach-form { display: flex; gap: 10px; margin-bottom: 16px; }
+.coach-form-copy {
+    flex: 1;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
 .coach-form input {
     flex: 1;
     background: var(--bg-2);
@@ -673,12 +707,32 @@ a { color: inherit; text-decoration: none; }
 }
 .coach-form button:disabled { opacity: .5; cursor: default; }
 
-.coach-answer .coach-q { color: var(--cream); font-size: 13px; font-weight: 700; margin-bottom: 8px; }
-.coach-answer .coach-a { font-size: 13px; line-height: 1.9; color: var(--text); }
+.coach-report-summary {
+    padding: 16px;
+    border-left: 2px solid var(--teal);
+    background: color-mix(in srgb, var(--teal) 7%, transparent);
+}
+.coach-report-summary strong { color: var(--cream); font-size: 15px; }
+.coach-report-summary p,
+.coach-report-section p,
+.coach-report-note,
+.coach-report-overall { margin-top: 7px; color: var(--text); font-size: 12px; line-height: 1.8; }
+.coach-report-section { margin-top: 18px; }
+.coach-report-section h3 {
+    margin-bottom: 8px;
+    color: var(--gold);
+    font-size: 12px;
+    letter-spacing: .06em;
+}
+.coach-report-section ul { list-style: none; display: grid; gap: 10px; }
+.coach-report-section li { padding: 10px 12px; border: 1px solid var(--line); }
+.coach-report-section li strong { color: var(--cream); font-size: 12px; }
+.coach-report-section.strength li { border-left: 2px solid var(--teal); }
+.coach-report-section.improvement li,
+.coach-report-section.primary { border-left: 2px solid var(--gold); }
+.coach-report-section.primary { padding: 12px 14px; background: color-mix(in srgb, var(--gold) 7%, transparent); }
+.coach-report-overall { margin-top: 18px; color: var(--cream); }
 .coach-meta { margin-top: 12px; font-size: 10px; letter-spacing: .06em; color: var(--muted); }
-.coach-cites { list-style: none; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px; }
-.coach-cites li { font-size: 11px; }
-.coach-cites a { color: var(--gold); text-decoration: underline; }
 
 /* ===== 검색 오류 메시지 ===== */
 .search-error {
@@ -786,3 +840,56 @@ a { color: inherit; text-decoration: none; }
 }
 .style-save:hover:not(:disabled) { background: color-mix(in srgb, var(--teal) 10%, transparent); }
 .style-save:disabled { border-color: var(--line); color: var(--muted); cursor: default; }
+
+/* ===== 코칭 리포트 보관함 ===== */
+.report-vault { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 24px; }
+.report-card,
+.style-card { border: 1px solid var(--line); padding: 16px; }
+.report-card header,
+.style-card header { margin-bottom: 8px; position: relative; padding-right: 24px; }
+.report-remove,
+.style-remove {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 22px;
+    height: 22px;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+}
+.report-remove:hover,
+.style-remove:hover { border-color: var(--red); color: var(--red); }
+.report-card header strong,
+.style-card header strong { display: block; color: var(--cream); font-size: 14px; }
+.report-card header strong small,
+.style-card header strong small { color: var(--muted); font-weight: 400; margin-left: 4px; }
+.report-card header span,
+.style-card header span { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+.report-card header time,
+.style-card header time { display: block; color: var(--muted); font-size: 10px; }
+.report-summary { color: var(--text); font-size: 12px; line-height: 1.7; margin-bottom: 10px; }
+.report-detail summary {
+    cursor: pointer;
+    color: var(--teal);
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+.report-detail[open] summary { margin-bottom: 14px; }
+.report-refresh,
+.style-refresh {
+    width: 100%;
+    margin-top: 10px;
+    background: transparent;
+    border: 1px solid var(--gold-2);
+    color: var(--gold);
+    padding: 7px 0;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+.report-refresh:hover,
+.style-refresh:hover { background: color-mix(in srgb, var(--gold) 10%, transparent); }
