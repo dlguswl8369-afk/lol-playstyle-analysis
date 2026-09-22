@@ -1,9 +1,6 @@
 const $ = (sel) => document.querySelector(sel);
 const DDRAGON_VERSION = "16.18.1";
 
-// 티어 평균 기준값 (백엔드에서 내려주면 analysis.tierAverage 로 대체됩니다)
-const DEFAULT_TIER_AVG = { kda: 2.8, csPerMin: 6.5, goldPerMin: 400, killParticipation: 50, visionScore: 22 };
-
 /* ===================== 테마 변경 ===================== */
 
 const THEME_KEY = "riftcoach.theme";
@@ -57,8 +54,6 @@ if (themeToggle) {
 }
 
 const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const avg = (list, key) => list.reduce((sum, m) => sum + (m[key] ?? 0), 0) / list.length;
-const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 /* ===================== 화면 전환 ===================== */
 function showView(name) {
@@ -66,6 +61,7 @@ function showView(name) {
     $("#resultView").hidden = name !== "result";
     $("#styleView").hidden = name !== "style";
     $("#searchView").hidden = name !== "search";
+    $("#reportView").hidden = name !== "report";
     window.scrollTo(0, 0);
 }
 
@@ -78,9 +74,14 @@ $("#logoLink").addEventListener("click", (e) => {
 // 분석 결과가 있으면 해당 패널로, 없으면 검색창으로 보낸다
 // 1. addEventlistener를 features 컨테이너에 붙여서 이벤트 위임함으로써 각 카드마다 개별 이벤트를 늘리지 않아도 된다.
 // 2. window.APP_STATE.player && ...: 현재 전역 앱 상태(window.APP_STATE)에 player 정보가 존재하는지(예: 로그인 또는 캐릭터 선택이 완료되었는지) 먼저 확인한다.
-document.querySelector(".features").addEventListener("click", (e) => { 
+document.querySelector(".features").addEventListener("click", (e) => {
     const card = e.target.closest(".feature");
     if (!card) return;
+    if (card.dataset.view === "report") {
+        showView("report");
+        renderReportVault();
+        return;
+    }
 // 1. 플레이어가 존재한다면, 클릭한 카드의 HTML 데이터 속성(data-target="아이디") 값을 이용해 화면에서 해당 ID를 가진 패널 요소를 찾는다. (여기서 $는 jQuery나 별도로 선언된 DOM 선택자 함수.)
 // 2. 만약 panel이 존재하지 않는다면, 현재 전역 상태에 player 정보가 없거나 해당 패널이 DOM에 존재하지 않는다면, 검색 폼으로 스크롤하고 게임 이름 입력란에 포커스를 준다.
 // 3. if (!panel): 만약 플레이어 상태가 없거나, 이동할 대상 패널을 찾지 못했다면 실행됩니다
@@ -171,6 +172,7 @@ async function runAnalysis(gameName, tagLine, view = "result") {
         window.APP_STATE.player = analysis.profile;
         window.APP_STATE.riotId = { gameName, tagLine };
         window.APP_STATE.matches = analysis.matches ?? [];
+        window.APP_STATE.summary = analysis.summary ?? {};
         saveRecent(gameName, tagLine);
         
 
@@ -197,9 +199,10 @@ async function runAnalysis(gameName, tagLine, view = "result") {
 function renderResult(analysis, gameName, tagLine) {
     const matches = analysis.matches ?? [];
     const rank = analysis.rank;
-    const tierAvg = { ...DEFAULT_TIER_AVG, ...(analysis.tierAverage ?? {}) };
+    const summary = analysis.summary ?? {};
 
     // --- 프로필 ---
+    window.APP_STATE.rank = rank ?? null;
     $("#pName").textContent = gameName;
     $("#pTag").textContent = `#${tagLine}`;
     const iconId = analysis.profile?.profileIconId;
@@ -221,125 +224,143 @@ function renderResult(analysis, gameName, tagLine) {
         return;
     }
 
-    const wins = matches.filter((m) => m.win).length;
-    const winRate = (wins / matches.length) * 100;
+    const winRate = Number(summary.win_rate ?? 0);
     $("#pWin").textContent = `승률 ${winRate.toFixed(0)}%`;
 
-    const my = {
-        kda: avg(matches, "kda"),
-        csPerMin: avg(matches, "csPerMin"),
-        goldPerMin: avg(matches, "goldPerMin"),
-        killParticipation: avg(matches, "killParticipation"),
-        visionScore: avg(matches, "visionScore"),
-    };
-
-    renderMetrics(my, tierAvg);
-    const style = calcPlayStyle(matches, my, tierAvg);
-    renderRadar(style);
-    // 저장은 사용자가 "저장하기"를 눌렀을 때만 한다
-    window.APP_STATE.playStyle = { gameName, tagLine, style, winRate, matchCount: matches.length };
-    $("#styleSaveBtn").textContent = "저장하기";
-    $("#styleSaveBtn").disabled = false;
-    renderTips(analysis.aiCoach, my, tierAvg, matches);
+    renderMetrics(summary.metrics ?? {});
+    renderPlayStyleReport(null);
+    renderTips(null);
+    window.APP_STATE.coachingReport = null;
+    window.APP_STATE.playStyle = null;
+    window.APP_STATE.savedReportDraft = null;
+    $("#styleSaveBtn").textContent = "리포트 생성 후 저장";
+    $("#styleSaveBtn").disabled = true;
+    $("#reportSaveBtn").textContent = "저장";
+    $("#reportSaveBtn").disabled = true;
+    $("#coachTarget").textContent = `${gameName} #${tagLine}`;
+    $("#coachAnswer").innerHTML = `<p class="empty">Databricks 분석 결과를 보려면 코칭 리포트를 생성하세요.</p>`;
     renderTrend(matches.slice(0, 10).reverse());
     renderMatches(matches);
 }
+// 분석화면 
+const METRIC_PRESENTATION = {
+    kda: { label: "KDA", decimals: 2 },
+    cs_per_min: { label: "분당 CS", decimals: 1 },
+    gold_per_min: { label: "분당 골드", decimals: 0 },
+    gold_share: { label: "팀 골드 점유율", decimals: 1, percent: true },
+    kill_participation: { label: "킬 관여율", decimals: 1, percent: true },
+    damage_per_min: { label: "분당 챔피언 피해", decimals: 0 },
+    damage_share: { label: "팀 피해 점유율", decimals: 1, percent: true },
+    damage_efficiency: { label: "피해 교환 효율", decimals: 2 },
+    vision_score_per_min: { label: "분당 시야 점수", decimals: 2 },
+    wards_placed_per_min: { label: "분당 와드 설치", decimals: 2 },
+    wards_killed_per_min: { label: "분당 와드 제거", decimals: 2 },
+    vision_wards_bought_per_min: { label: "분당 제어 와드 구매", decimals: 2 },
+    objective_damage_per_min: { label: "분당 오브젝트 피해", decimals: 0 },
+};
 
-/* --- CORE METRICS --- */
-function renderMetrics(my, tierAvg) {
-    const rows = [
-        { label: "KDA", key: "kda", fmt: (v) => v.toFixed(2) },
-        { label: "분당 CS", key: "csPerMin", fmt: (v) => v.toFixed(1) },
-        { label: "분당 골드", key: "goldPerMin", fmt: (v) => v.toFixed(0) },
-        { label: "킬 관여율", key: "killParticipation", fmt: (v) => `${v.toFixed(0)}%` },
-        { label: "시야 점수", key: "visionScore", fmt: (v) => v.toFixed(1) },
-    ];
+function metricValue(key, rawValue) {
+    const config = METRIC_PRESENTATION[key] ?? { label: key, decimals: 2 };
+    const value = Number(rawValue ?? 0) * (config.percent ? 100 : 1);
+    return `${value.toFixed(config.decimals)}${config.percent ? "%" : ""}`;
+}
 
-    $("#metrics").innerHTML = rows.map(({ label, key, fmt }) => {
-        const mine = my[key];
-        const base = tierAvg[key];
-        // 티어 평균을 바의 60% 지점에 두고 비례 표시
-        const pct = clamp((mine / base) * 60, 2, 100);
-        const ratio = (mine - base) / base;
-        let diff = `<span>평균</span>`;
-        if (Math.abs(ratio) >= 0.03) {
-            const sign = ratio > 0 ? "+" : "-";
-            diff = `<span class="${ratio > 0 ? "c-teal" : "c-red"}">${sign}${fmt(Math.abs(mine - base)).replace("%", "%p")}</span>`;
-        }
+/* --- CORE METRICS: backend summary, then Databricks benchmark --- */
+function renderMetrics(summaryMetrics, priorityCandidates = null) {
+    const hasBenchmark = Array.isArray(priorityCandidates) && priorityCandidates.length > 0;
+    const rows = hasBenchmark
+        ? priorityCandidates.filter((item) => METRIC_PRESENTATION[item.key]).map((item) => ({
+            key: item.key,
+            mine: Number(item.my_value ?? 0),
+            benchmark: Number(item.benchmark_mean ?? 0),
+        }))
+        : Object.entries(summaryMetrics ?? {}).filter(([key]) => METRIC_PRESENTATION[key]).map(([key, value]) => ({
+            key,
+            mine: Number(value ?? 0) / (METRIC_PRESENTATION[key].percent ? 100 : 1),
+            benchmark: null,
+        }));
+
+    if (!rows.length) {
+        $("#metrics").innerHTML = `<p class="empty">표시할 백엔드 지표가 없습니다.</p>`;
+        return;
+    }
+
+    $("#metricsMode").textContent = hasBenchmark ? "Databricks 벤치마크 대비" : "최근 경기 실측 평균";
+    $("#metricsNote").textContent = hasBenchmark
+        ? "점선은 Databricks가 선택한 동일 조건 벤치마크입니다."
+        : "Riot 경기 데이터의 단순 평균이며 평가 문구를 생성하지 않습니다.";
+
+    $("#metrics").innerHTML = rows.map(({ key, mine, benchmark }) => {
+        const config = METRIC_PRESENTATION[key];
+        const scaleMax = Math.max(mine, benchmark ?? 0, 0.000001);
+        const mineWidth = Math.max(2, (mine / scaleMax) * 100);
+        const benchmarkLeft = benchmark == null ? null : (benchmark / scaleMax) * 100;
         return `
             <div class="metric">
-                <span>${label}</span>
-                <strong>${fmt(mine)}</strong>
-                <div class="bar"><div class="fill" style="width:${pct}%"></div><i class="avg" style="left:60%"></i></div>
-                <div class="diff">${diff}</div>
+                <span>${escapeHtml(config.label)}</span>
+                <strong>${metricValue(key, mine)}</strong>
+                <div class="bar">
+                    <div class="fill" style="width:${mineWidth}%"></div>
+                    ${benchmarkLeft == null ? "" : `<i class="avg" style="left:${benchmarkLeft}%"></i>`}
+                </div>
+                <div class="diff"><span>${benchmark == null ? "" : `기준 ${metricValue(key, benchmark)}`}</span></div>
             </div>`;
     }).join("");
 }
 
-/* --- PLAY STYLE (0~100, 티어 평균 = 50) --- */
-function calcPlayStyle(matches, my, tierAvg) {
-    const score = (mine, base) => clamp((mine / base) * 50, 5, 100);
-    const deathsAvg = avg(matches, "deaths");
-    const dmg = avg(matches, "damageToChampions");
-    return [
-        { label: "전투", value: score(my.kda, tierAvg.kda) * 0.6 + score(dmg, 18000) * 0.4 },
-        { label: "성장", value: score(my.csPerMin, tierAvg.csPerMin) },
-        { label: "운영", value: score(my.goldPerMin, tierAvg.goldPerMin) },
-        { label: "시야", value: score(my.visionScore, tierAvg.visionScore) },
-        { label: "오브젝트", value: score(my.killParticipation, tierAvg.killParticipation) },
-        { label: "안정성", value: clamp(100 - deathsAvg * 9, 5, 100) },
-    ];
-}
-
-function renderRadar(style, target = "#radar") {
-    const size = 300, c = size / 2, r = 100;
-    const n = style.length;
-    const pt = (i, v) => {
-        const a = (Math.PI * 2 * i) / n - Math.PI / 2;
-        return [c + Math.cos(a) * r * v, c + Math.sin(a) * r * v];
-    };
-    const poly = (vals) => vals.map((v, i) => pt(i, v).join(",")).join(" ");
-
-    const rings = [0.33, 0.66, 1].map((k) =>
-        `<polygon points="${poly(Array(n).fill(k))}" fill="none" style="stroke:var(--line)"/>`).join("");
-    const axes = style.map((_, i) => {
-        const [x, y] = pt(i, 1);
-        return `<line x1="${c}" y1="${c}" x2="${x}" y2="${y}" style="stroke:var(--line)"/>`;
-    }).join("");
-    const labels = style.map((s, i) => {
-        const [x, y] = pt(i, 1.2);
-        return `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="10" style="fill:var(--muted)">${s.label}</text>`;
-    }).join("");
-
-    $(target).innerHTML = `
-        <svg viewBox="0 0 ${size} ${size}">
-            ${rings}${axes}
-            <polygon points="${poly(Array(n).fill(0.5))}" fill="none" stroke-dasharray="4 3" style="stroke:var(--muted)"/>
-            <polygon points="${poly(style.map((s) => s.value / 100))}" stroke-width="2" style="fill:color-mix(in srgb, var(--teal) 35%, transparent);stroke:var(--teal)"/>
-            ${labels}
-        </svg>`;
-}
-
-/* --- NEXT GAME 코칭 --- */
-function renderTips(aiCoach, my, tierAvg, matches) {
-    // 백엔드 AI 코칭이 있으면 우선 사용: [{ title, detail }]
-    let tips = Array.isArray(aiCoach?.tips) ? aiCoach.tips : null;
-
-    if (!tips) {
-        const pct = (k) => ((my[k] - tierAvg[k]) / tierAvg[k]) * 100;
-        const candidates = [
-            { gap: pct("csPerMin"), title: "라인 CS를 먼저 챙기세요", detail: `분당 CS가 티어 평균보다 ${Math.abs(pct("csPerMin")).toFixed(0)}% 낮습니다. 귀환 전 웨이브를 밀고 가는 습관부터.` },
-            { gap: pct("visionScore"), title: "오브젝트 30초 전에 시야부터", detail: `시야 점수가 티어 평균보다 ${Math.abs(pct("visionScore")).toFixed(0)}% 낮습니다. 드래곤 · 전령 스폰 전 와드를 먼저 까세요.` },
-            { gap: pct("killParticipation"), title: "교전에 더 자주 합류하세요", detail: `킬 관여율이 티어 평균보다 ${Math.abs(pct("killParticipation")).toFixed(0)}%p 낮습니다. 미니맵 체크 주기를 줄여보세요.` },
-            { gap: pct("kda"), title: "무리한 진입을 줄이세요", detail: `평균 데스 ${avg(matches, "deaths").toFixed(1)}회. 시야 없는 곳에서의 진입이 KDA를 깎고 있습니다.` },
-        ].sort((a, b) => a.gap - b.gap);
-
-        tips = candidates.slice(0, 3);
-        if (tips[0].gap >= 0) tips = [{ title: "지금 페이스를 유지하세요", detail: "모든 핵심 지표가 티어 평균 이상입니다. 연패 시 휴식만 챙기면 됩니다." }];
+function renderPlayStyleReport(playstyleAnalysis, target = "#radar") {
+    const container = $(target);
+    if (!container) return;
+    const style = playstyleAnalysis?.play_style;
+    if (!style) {
+        container.innerHTML = `<p class="empty">Databricks 코칭 리포트 생성 후 플레이스타일이 표시됩니다.</p>`;
+        return;
     }
 
-    $("#tips").innerHTML = tips.map((t) =>
-        `<li><div><strong>${escapeHtml(t.title)}</strong><p>${escapeHtml(t.detail)}</p></div></li>`).join("");
+    const statusLabels = {
+        single: "단일 스타일",
+        mixed: "혼합 스타일",
+        unstable: "변동형",
+        insufficient: "경기 부족",
+    };
+    const styles = Array.isArray(style.styles) ? style.styles : [];
+    const styleRows = styles.length
+        ? styles.map((item) => `
+            <div class="style-result-row">
+                <div><strong>${escapeHtml(item.name ?? "분류 없음")}</strong><span>${Number(item.ratio ?? 0).toFixed(1)}%</span></div>
+                <div class="style-result-bar"><i style="width:${Math.min(100, Math.max(0, Number(item.ratio ?? 0)))}%"></i></div>
+            </div>`).join("")
+        : `<p class="empty">${escapeHtml(style.message ?? "플레이스타일을 확정할 데이터가 부족합니다.")}</p>`;
+
+    container.innerHTML = `
+        <div class="style-result-head">
+            <strong>${escapeHtml(statusLabels[style.status] ?? style.status ?? "분석 결과")}</strong>
+            <span>${escapeHtml(playstyleAnalysis.main_position ?? "UNKNOWN")} · ${Number(playstyleAnalysis.games_analyzed ?? style.games ?? 0)}경기</span>
+        </div>
+        ${styleRows}`;
+}
+
+/* --- NEXT GAME: validated Databricks coaching only --- */
+function renderTips(coaching) {
+    if (!coaching) {
+        $("#tips").innerHTML = `<li><div><strong>리포트 대기 중</strong><p>Databricks 분석이 완료되면 검증된 개선점이 표시됩니다.</p></div></li>`;
+        return;
+    }
+
+    const items = [];
+    if (coaching.primary_goal) items.push(coaching.primary_goal);
+    for (const improvement of coaching.improvements ?? []) {
+        if (!items.some((item) => item.key === improvement.key)) items.push(improvement);
+    }
+    if (!items.length) {
+        $("#tips").innerHTML = `<li><div><strong>확정된 개선점 없음</strong><p>${escapeHtml(coaching.overall_comment ?? "백엔드 분석에서 우선 개선 항목을 확정하지 않았습니다.")}</p></div></li>`;
+        return;
+    }
+
+    $("#tips").innerHTML = items.slice(0, 3).map((item) => {
+        const detail = [item.description, item.action].filter(Boolean).join(" ");
+        return `<li><div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(detail)}</p></div></li>`;
+    }).join("");
 }
 
 /* --- RECENT TREND (KDA 라인 차트) --- */
@@ -416,12 +437,7 @@ function renderTrend(list) {
 
 /* --- MATCH HISTORY --- */
 function matchComment(m) {
-    if (m.comment) return m.comment; // 백엔드 코멘트 우선
-    if (m.win && m.killParticipation >= 60) return "높은 킬 관여로 팀 교전 주도";
-    if (m.win && m.visionScore >= 30) return "시야 점수 개인 최고치급";
-    if (!m.win && m.deaths >= 8) return `데스 ${m.deaths}회 — 무리한 진입 점검 필요`;
-    if (!m.win && m.csPerMin < 5) return "CS 손실이 큰 경기";
-    return m.win ? "안정적인 운영으로 승리" : "초반 격차를 뒤집지 못함";
+    return m.comment ?? "";
 }
 
 const POSITION_LABEL = {
@@ -539,56 +555,133 @@ $("#searchResult").addEventListener("click", (event) => {
     $("#lookupForm").requestSubmit();
 });
 
-/* ===================== 코칭 리포트 (RAG) ===================== */
+/* ===================== Databricks 코칭 리포트 ===================== */
 $("#coachForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const input = $("#coachQuestion");
-    const question = input.value.trim();
-    if (!question) return;
-
     const { gameName = "", tagLine = "" } = window.APP_STATE.riotId ?? {};
+    if (!gameName || !tagLine) return;
     const btn = $("#coachBtn");
     btn.disabled = true;
-    btn.textContent = "생각 중...";
-    $("#coachAnswer").innerHTML = `<p class="empty">답변을 생성하고 있습니다...</p>`;
+    btn.textContent = "생성 중...";
+    $("#reportSaveBtn").disabled = true;
+    $("#reportSaveBtn").textContent = "저장";
+    const startedAt = Date.now();
+    const updateWaitingMessage = () => {
+        const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+        const stage = elapsed < 5
+            ? "전적 데이터를 준비하고 있습니다."
+            : elapsed < 20
+                ? "Databricks 분석을 실행하고 있습니다."
+                : "첫 실행은 Databricks 시작 때문에 시간이 더 걸릴 수 있습니다.";
+        $("#coachAnswer").innerHTML = `<p class="empty">${stage} (${elapsed}초)</p>`;
+    };
+    updateWaitingMessage();
+    const waitingTimer = window.setInterval(updateWaitingMessage, 1000);
 
     try {
-        const result = await window.APP_API.askCoach(question, gameName, tagLine, 10);
-        renderCoachAnswer(question, result);
-        input.value = "";
+        const result = await window.APP_API.getCoachingReport(gameName, tagLine, 10);
+        applyCoachingReport(result, gameName, tagLine);
     } catch (error) {
         console.error("코칭 실패:", error);
         $("#coachAnswer").innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`;
     } finally {
+        window.clearInterval(waitingTimer);
         btn.disabled = false;
-        btn.textContent = "질문";
+        btn.textContent = "코칭 리포트 생성";
     }
 });
 
-const ROUTE_LABEL = {
-    official_information: "공식 문서",
-    personal_analysis: "내 전적",
-    mixed: "공식 문서 + 내 전적",
-};
+function applyCoachingReport(payload, gameName, tagLine) {
+    const report = payload.report ?? {};
+    const analysis = report.analysis ?? {};
+    const coaching = report.coaching ?? null;
+    const priorityCandidates = analysis.priority?.priority_candidates ?? [];
+    const playstyle = analysis.playstyle ?? null;
 
-function renderCoachAnswer(question, result) {
-    const answer = (result.answer ?? "").trim() || "답변을 생성하지 못했습니다.";
-    const citations = Array.isArray(result.citations) ? result.citations : [];
+    window.APP_STATE.coachingReport = report;
+    renderMetrics({}, priorityCandidates);
+    renderPlayStyleReport(playstyle);
+    renderTips(coaching);
+    renderCoachReport(payload);
 
-    const sources = citations.length
-        ? `<ul class="coach-cites">${citations.map((c) => {
-            const title = escapeHtml(c.title || c.document_id || "출처");
-            return c.source_url
-                ? `<li><a href="${escapeHtml(c.source_url)}" target="_blank" rel="noopener">${title}</a></li>`
-                : `<li>${title}</li>`;
-        }).join("")}</ul>`
+    const summary = window.APP_STATE.summary ?? {};
+    window.APP_STATE.playStyle = playstyle ? {
+        gameName,
+        tagLine,
+        playstyle,
+        winRate: Number(summary.win_rate ?? 0),
+        matchCount: Number(payload.match_count ?? summary.games ?? 0),
+    } : null;
+    $("#styleSaveBtn").textContent = playstyle ? "저장하기" : "저장할 결과 없음";
+    $("#styleSaveBtn").disabled = !playstyle;
+
+    window.APP_STATE.savedReportDraft = coaching ? {
+        gameName, tagLine,
+        payload: {
+            cached: payload.cached,
+            run_id: payload.run_id,
+            match_count: payload.match_count,
+            report: { coaching: report.coaching, player: { tactical_role: report.player?.tactical_role } },
+        },
+        winRate: Number(summary.win_rate ?? 0),
+        tier: window.APP_STATE.rank?.tier ?? null,
+    } : null;
+    $("#reportSaveBtn").textContent = coaching ? "저장" : "저장할 리포트 없음";
+    $("#reportSaveBtn").disabled = !coaching;
+}
+
+function reportItems(title, items, kind) {
+    if (!Array.isArray(items) || !items.length) return "";
+    return `
+        <section class="coach-report-section ${kind}">
+            <h3>${escapeHtml(title)}</h3>
+            <ul>${items.map((item) => `
+                <li>
+                    <strong>${escapeHtml(item.title ?? item.key ?? "")}</strong>
+                    <p>${escapeHtml([item.description, item.action].filter(Boolean).join(" "))}</p>
+                </li>`).join("")}
+            </ul>
+        </section>`;
+}
+
+function renderCoachReport(payload, target = "#coachAnswer") {
+    const report = payload.report ?? {};
+    const coaching = report.coaching;
+    if (!coaching) {
+        const error = report.error?.message ?? "Databricks가 유효한 코칭 결과를 반환하지 않았습니다.";
+        $(target).innerHTML = `<p class="empty">${escapeHtml(error)}</p>`;
+        return;
+    }
+
+    const primary = coaching.primary_goal
+        ? `<section class="coach-report-section primary">
+               <h3>다음 경기 최우선 목표</h3>
+               <strong>${escapeHtml(coaching.primary_goal.title)}</strong>
+               <p>${escapeHtml(coaching.primary_goal.action)}</p>
+           </section>`
         : "";
+    const actionList = Array.isArray(coaching.coaching) && coaching.coaching.length
+        ? `<section class="coach-report-section"><h3>실전 코칭</h3><ul>${coaching.coaching.map((item) => `<li><p>${escapeHtml(item)}</p></li>`).join("")}</ul></section>`
+        : "";
+    const metadata = [
+        payload.cached ? "캐시 결과" : `Databricks Run ${payload.run_id ?? "-"}`,
+        `${Number(payload.match_count ?? 0)}경기 분석`,
+        report.player?.tactical_role ? `역할 ${report.player.tactical_role}` : null,
+    ].filter(Boolean).join(" · ");
 
-    $("#coachAnswer").innerHTML = `
-        <p class="coach-q">${escapeHtml(question)}</p>
-        <div class="coach-a">${escapeHtml(answer).replace(/\n/g, "<br>")}</div>
-        <div class="coach-meta">${escapeHtml(ROUTE_LABEL[result.route] ?? result.route ?? "")}</div>
-        ${sources}`;
+    $(target).innerHTML = `
+        <div class="coach-report-summary">
+            <strong>${escapeHtml(coaching.play_summary)}</strong>
+            ${coaching.playstyle_summary ? `<p>${escapeHtml(coaching.playstyle_summary)}</p>` : ""}
+        </div>
+        ${reportItems("강점", coaching.strengths, "strength")}
+        ${reportItems("개선점", coaching.improvements, "improvement")}
+        ${primary}
+        ${coaching.recent_growth ? `<p class="coach-report-note">${escapeHtml(coaching.recent_growth)}</p>` : ""}
+        ${coaching.combat_comment ? `<p class="coach-report-note">${escapeHtml(coaching.combat_comment)}</p>` : ""}
+        ${actionList}
+        <p class="coach-report-overall">${escapeHtml(coaching.overall_comment)}</p>
+        <div class="coach-meta">${escapeHtml(metadata)}</div>`;
 }
 
 renderRecent();
@@ -602,9 +695,9 @@ function loadStyles() {
     try { return JSON.parse(localStorage.getItem(STYLE_KEY)) ?? []; } catch { return []; }
 }
 
-function saveStyle(gameName, tagLine, style, winRate, matchCount) {
+function saveStyle(gameName, tagLine, playstyle, winRate, matchCount) {
     const id = `${gameName}#${tagLine}`;
-    const entry = { id, gameName, tagLine, style, winRate, matchCount, at: Date.now() };
+    const entry = { id, gameName, tagLine, playstyle, winRate, matchCount, at: Date.now() };
     const list = [entry, ...loadStyles().filter((x) => x.id !== id)].slice(0, STYLE_MAX);
     try { localStorage.setItem(STYLE_KEY, JSON.stringify(list)); } catch { /* 저장 불가 환경 무시 */ }
 }
@@ -620,7 +713,7 @@ function renderStyleVault() {
     const vault = $("#styleVault");
 
     if (list.length === 0) {
-        vault.innerHTML = `<p class="empty">먼저 소환사를 검색하면 플레이스타일이 여기에 저장됩니다.</p>`;
+        vault.innerHTML = `<p class="empty">코칭 리포트를 생성한 뒤 플레이스타일을 저장할 수 있습니다.</p>`;
         return;
     }
 
@@ -636,15 +729,22 @@ function renderStyleVault() {
             <button type="button" class="style-refresh">다시 분석</button>
         </article>`).join("");
 
-    // 저장된 값으로 그린다 — 네트워크 호출 없음
-    list.forEach((e) => renderRadar(e.style, `[id="vault-${CSS.escape(e.id)}"]`));
+    // Databricks가 반환한 저장 결과만 표시한다 — 네트워크 호출 없음
+    list.forEach((e) => {
+        const target = `[id="vault-${CSS.escape(e.id)}"]`;
+        if (e.playstyle) {
+            renderPlayStyleReport(e.playstyle, target);
+        } else {
+            $(target).innerHTML = `<p class="empty">이전 프런트 계산 데이터입니다. 다시 분석해 주세요.</p>`;
+        }
+    });
 }
 
 $("#styleSaveBtn").addEventListener("click", () => {
     const current = window.APP_STATE.playStyle;
     if (!current) return;
 
-    saveStyle(current.gameName, current.tagLine, current.style, current.winRate, current.matchCount);
+    saveStyle(current.gameName, current.tagLine, current.playstyle, current.winRate, current.matchCount);
     const btn = $("#styleSaveBtn");
     btn.textContent = "저장됨 · 플레이스타일에서 보기";
     btn.disabled = true;
@@ -666,6 +766,103 @@ $("#styleVault").addEventListener("click", (event) => {
     }
     // "다시 분석"을 눌렀을 때만 Riot API를 부른다
     if (event.target.closest(".style-refresh")) {
+        runAnalysis(card.dataset.name, card.dataset.tag);
+    }
+});
+
+/* ===================== 코칭 리포트 보관함 ===================== */
+// 결과 화면의 코칭 리포트를 저장해, 다시 볼 때 API를 부르지 않는다
+const REPORT_KEY = "riftcoach.reports";
+const REPORT_MAX = 10;
+
+function loadReports() {
+    try { return JSON.parse(localStorage.getItem(REPORT_KEY)) ?? []; } catch { return []; }
+}
+
+function saveReport(draft) {
+    const list = loadReports();
+    const runId = draft.payload?.run_id;
+    const isDuplicate = runId != null && list.some((x) =>
+        x.gameName === draft.gameName && x.tagLine === draft.tagLine && x.payload?.run_id === runId);
+    if (isDuplicate) return { added: false };
+
+    const at = Date.now();
+    const entry = { id: `${draft.gameName}#${draft.tagLine}@${at}`, ...draft, at };
+    const next = [entry, ...list].slice(0, REPORT_MAX);
+    try { localStorage.setItem(REPORT_KEY, JSON.stringify(next)); } catch { /* 저장 불가 환경 무시 */ }
+    return { added: true };
+}
+
+function removeReport(id) {
+    const list = loadReports().filter((x) => x.id !== id);
+    try { localStorage.setItem(REPORT_KEY, JSON.stringify(list)); } catch { /* 저장 불가 환경 무시 */ }
+    renderReportVault();
+}
+
+$("#reportLink").addEventListener("click", (event) => {
+    event.preventDefault();
+    showView("report");
+    renderReportVault();
+});
+
+$("#reportSaveBtn").addEventListener("click", () => {
+    const draft = window.APP_STATE.savedReportDraft;
+    if (!draft) return;
+
+    const { added } = saveReport(draft);
+    const btn = $("#reportSaveBtn");
+    btn.textContent = added ? "저장됨 · 코칭 리포트에서 보기" : "이미 저장된 리포트입니다";
+    btn.disabled = true;
+});
+
+function renderReportVault() {
+    const list = loadReports();
+    const vault = $("#reportVault");
+
+    if (list.length === 0) {
+        vault.innerHTML = `<p class="empty">코칭 리포트를 생성한 뒤 저장할 수 있습니다.</p>`;
+        return;
+    }
+
+    vault.innerHTML = list.map((e) => {
+        const coaching = e.payload?.report?.coaching;
+        const meta = [
+            `최근 ${Number(e.payload?.match_count ?? 0)}경기 · 승률 ${Number(e.winRate ?? 0).toFixed(0)}%`,
+            e.tier ? e.tier : null,
+        ].filter(Boolean).join(" · ");
+        return `
+        <article class="report-card" data-id="${escapeHtml(e.id)}" data-name="${escapeHtml(e.gameName)}" data-tag="${escapeHtml(e.tagLine)}">
+            <header>
+                <button type="button" class="report-remove" aria-label="${escapeHtml(e.id)} 삭제">×</button>
+                <strong>${escapeHtml(e.gameName)}<small>#${escapeHtml(e.tagLine)}</small></strong>
+                <span>${escapeHtml(meta)}</span>
+                <time>${new Date(e.at).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })} 기준</time>
+            </header>
+            <p class="report-summary">${escapeHtml(coaching?.play_summary ?? "")}</p>
+            <details class="report-detail">
+                <summary>리포트 전체 보기</summary>
+                <div id="report-${escapeHtml(e.id)}"></div>
+            </details>
+            <button type="button" class="report-refresh">다시 분석</button>
+        </article>`;
+    }).join("");
+
+    list.forEach((e) => {
+        const target = `[id="report-${CSS.escape(e.id)}"]`;
+        renderCoachReport(e.payload, target);
+    });
+}
+
+$("#reportVault").addEventListener("click", (event) => {
+    const card = event.target.closest(".report-card");
+    if (!card) return;
+
+    if (event.target.closest(".report-remove")) {
+        removeReport(card.dataset.id);
+        return;
+    }
+    // "다시 분석"을 눌렀을 때만 Riot API를 부른다
+    if (event.target.closest(".report-refresh")) {
         runAnalysis(card.dataset.name, card.dataset.tag);
     }
 });
