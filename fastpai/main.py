@@ -1,10 +1,10 @@
+import hashlib
+import json
 import os
 import time
-import requests
-import json
-import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
@@ -166,7 +166,7 @@ def build_player_features(match_detail: dict, puuid: str):
     if game_start_timestamp:
         game_start_datetime = datetime.fromtimestamp(
             game_start_timestamp / 1000,
-            tz=timezone.utc
+            tz=UTC
         ).isoformat()
 
     return {
