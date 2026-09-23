@@ -19,6 +19,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-      - run: python -m pip install -r requirements.txt
+      - run: python -m pip install -r fastpai/requirements.txt ruff pytest
       - run: python -m ruff check .
       - run: python -m pytest
