@@ -239,7 +239,7 @@
     </main>
 
 
-        <!-- ========== 공식 정보 RAG 검색 ========== -->
+        <!-- ========== 공식 정보 + 개인 경기 질문 ========== -->
     <main id="infoView" hidden>
         <div class="result-body">
             <section class="panel panel-teal info-panel">
@@ -247,19 +247,47 @@
                     <h2 class="c-teal">정보 및 경기 통계 검색</h2>
                     <span class="line transparent"></span>
                 </div>
-                <form class="info-form" id="infoForm">
-                    <label for="infoQuestion" class="sr-only">궁금한 LoL 정보</label>
-                    <input id="infoQuestion" type="text" autocomplete="off"
-                           placeholder="예) 아리 특징·스킬 알려줘 / 몬도치/#KR3/ 최근 경기 상대보다 CS를 잘 먹었어?">
-                    <button type="submit" id="infoBtn">검색</button>
+                <fieldset class="question-mode" id="infoModeGroup">
+                    <legend>질문 유형</legend>
+                    <label class="question-mode-option">
+                        <input type="radio" name="infoMode" value="official" checked>
+                        <span>
+                            <strong>공식 게임 정보 질문</strong>
+                            <small>챔피언, 아이템, 스킬과 패치 정보를 검색합니다.</small>
+                        </span>
+                    </label>
+                    <label class="question-mode-option">
+                        <input type="radio" name="infoMode" value="personal">
+                        <span>
+                            <strong>개인 경기 질문</strong>
+                            <small>Riot ID의 최근 솔로랭크 경기를 분석합니다.</small>
+                        </span>
+                    </label>
+                </fieldset>
+                <form class="info-form" id="infoForm" novalidate>
+                    <div class="info-personal-fields" id="infoPersonalFields" hidden>
+                        <label>
+                            <span>소환사명</span>
+                            <input id="infoGameName" type="text" autocomplete="off"
+                                   placeholder="예) 몬도치">
+                        </label>
+                        <label>
+                            <span>태그</span>
+                            <input id="infoTagLine" type="text" autocomplete="off"
+                                   placeholder="예) KR3">
+                        </label>
+                    </div>
+                    <div class="info-query-row">
+                        <label for="infoQuestion" class="sr-only">질문</label>
+                        <input id="infoQuestion" type="text" autocomplete="off"
+                               placeholder="예) 아리의 스킬을 알려줘">
+                        <button type="submit" id="infoBtn">검색</button>
+                    </div>
+                    <p class="info-loading" id="infoLoading" aria-live="polite" hidden></p>
                 </form>
-                <div class="info-context" id="infoContext" hidden>
-                    현재 전적 대상: <strong id="infoContextValue"></strong>
-                    <button type="button" id="infoContextClear">초기화</button>
-                </div>
                 <p class="search-error" id="infoError" hidden></p>
                 <div id="infoAnswer" class="info-answer" aria-live="polite">
-                    <p class="empty">챔피언 특징·역할·스킬 또는 게임이름#태그를 포함한 전적 질문을 입력해 주세요.</p>
+                    <p class="empty">공식 게임 정보에 대해 궁금한 내용을 입력해 주세요.</p>
                 </div>
             </section>
         </div>
@@ -271,8 +299,8 @@
     </footer>
 
     <script src="./js/state.js?v=20260923-9"></script>
-    <script src="./js/services/api.js?v=20260923-3"></script>
-    <script src="./js/app.js?v=20260923-10"></script>
+    <script src="./js/services/api.js?v=20260928-1"></script>
+    <script src="./js/app.js?v=20260928-1"></script>
 </body>
 
 </html>

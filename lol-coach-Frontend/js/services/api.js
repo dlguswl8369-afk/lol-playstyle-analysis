@@ -58,16 +58,18 @@ async function getCoachingReport(gameName, tagLine, matchCount = 10) {
   return response.json();
 }
 
-async function askRag(question, gameName = "", tagLine = "", matchCount = 10) {
+async function askRag({ mode, question, gameName = "", tagLine = "", matchCount = 10 }) {
+  const payload = { mode, question };
+  if (mode === "personal") {
+    payload.game_name = gameName;
+    payload.tag_line = tagLine;
+    payload.match_count = matchCount;
+  }
+
   const response = await fetch("/api/rag", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      question,
-      riot_id: gameName || null,
-      tag_line: tagLine || null,
-      match_count: matchCount,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {

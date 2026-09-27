@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock
-from typing import Any
+from typing import Any, Literal
 
 import requests
 import uvicorn
@@ -53,6 +53,8 @@ app = FastAPI(title="LoL AI Coaching API")
 
 
 class LolRagRequest(BaseModel):
+    mode: Literal["official", "personal"] | None = None
+    game_name: str | None = None
     riot_id: str | None = None
     tag_line: str | None = None
     match_count: int = Field(default=10, ge=1, le=20)
@@ -827,7 +829,7 @@ def get_riot_account(game_name: str, tag_line: str):
 @app.post("/api/rag")
 @app.post("/lol/rag")
 def rag_search(request: LolRagRequest):
-    direct_riot_id = parse_riot_id_query(request.question)
+    direct_riot_id = parse_riot_id_query(request.question) if request.mode is None else None
     if direct_riot_id:
         started = time.perf_counter()
         game_name, tag_line = direct_riot_id
@@ -847,15 +849,42 @@ def rag_search(request: LolRagRequest):
             )
         )
 
-    embedded = parse_embedded_riot_question(request.question)
-    if embedded:
+    embedded = parse_embedded_riot_question(request.question) if request.mode is None else None
+    requested_game_name = request.game_name or request.riot_id
+    if request.mode == "official":
+        game_name = ""
+        tag_line = ""
+        effective_question = request.question.strip()
+    elif request.mode == "personal":
+        game_name = (requested_game_name or "").strip()
+        tag_line = (request.tag_line or "").strip().removeprefix("#")
+        effective_question = request.question.strip()
+        missing = [
+            field
+            for field, value in (("game_name", game_name), ("tag_line", tag_line))
+            if not value
+        ]
+        if missing:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error_code": "RIOT_ID_REQUIRED",
+                    "message": "개인 경기 질문에는 소환사명과 태그가 필요합니다.",
+                    "missing": missing,
+                },
+            )
+    elif embedded:
         game_name, tag_line, effective_question = embedded
     else:
-        game_name = (request.riot_id or "").strip()
+        game_name = (requested_game_name or "").strip()
         tag_line = (request.tag_line or "").strip().removeprefix("#")
         effective_question = request.question.strip()
 
-    if needs_riot_id_context(effective_question) and not (game_name and tag_line):
+    if (
+        request.mode != "official"
+        and needs_riot_id_context(effective_question)
+        and not (game_name and tag_line)
+    ):
         raise HTTPException(
             status_code=400,
             detail={
@@ -872,6 +901,7 @@ def rag_search(request: LolRagRequest):
         tag_line=tag_line or None,
         match_count=request.match_count,
         dependencies=get_rag_dependencies(),
+        mode=request.mode,
     )
     if game_name and tag_line:
         result["subject"] = {"game_name": game_name, "tag_line": tag_line}

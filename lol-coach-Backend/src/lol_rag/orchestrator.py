@@ -24,6 +24,7 @@ from .personal_analysis import (
 )
 from .riot_client import RiotApiError, RiotClient
 from .routing import (
+    QuestionMode,
     champion_candidate,
     classify_question,
     classify_question_reason,
@@ -279,6 +280,20 @@ def _deterministic_personal_analysis(evidence: dict[str, Any]) -> str:
         win_rate_percent = round(float(win_rate) * 100, 2)
         parts.append(f"유효 {match_count}경기의 승률은 {win_rate_percent}%입니다.")
     return " ".join(parts) or "개인 경기 통계가 계산되었습니다."
+
+
+def _clean_personal_answer(value: Any, evidence: dict[str, Any]) -> str:
+    lines = [
+        line.strip()
+        for line in str(value or "").splitlines()
+        if line.strip()
+        and not re.search(
+            r"OFFICIAL_CONTEXT|공식\s*정보.*(?:없|부족|제공되지|활용\s*불가|확인할\s*수\s*없)",
+            line,
+            re.IGNORECASE,
+        )
+    ]
+    return "\n".join(lines) or _deterministic_personal_analysis(evidence)
 
 
 def _compose_mixed_answer(
@@ -594,6 +609,7 @@ def answer_question(
     match_count: int = 20,
     dependencies: AgentDependencies | None = None,
     player_context: PlayerContext | None = None,
+    mode: QuestionMode | None = None,
 ) -> dict[str, Any]:
     """Answer one free-form question using deterministic stats and grounded RAG.
 
@@ -610,8 +626,13 @@ def answer_question(
         }
     if dependencies is None:
         raise ValueError("dependencies are required")
-    route = classify_question(question, riot_id=riot_id, tag_line=tag_line)
-    route_reason = classify_question_reason(question, riot_id=riot_id, tag_line=tag_line)
+    route = classify_question(question, riot_id=riot_id, tag_line=tag_line, mode=mode)
+    route_reason = classify_question_reason(
+        question,
+        riot_id=riot_id,
+        tag_line=tag_line,
+        mode=mode,
+    )
     result = _base_result(route, route_reason)
     selected_count = requested_recent_count(question, normalize_match_count(match_count))
     if needs_period_comparison(question):
@@ -945,9 +966,12 @@ def answer_question(
                 official_documents=safe_citations(official_documents),
             )
             return result
+        answer = str(generated.get("answer") or "")
+        if route == "personal_match":
+            answer = _clean_personal_answer(answer, evidence or {})
         result.update(
             status="PASS",
-            answer=str(generated.get("answer") or ""),
+            answer=answer,
             statistics=evidence or {},
             citations=grounded_citations,
             official_documents=safe_citations(official_documents),
