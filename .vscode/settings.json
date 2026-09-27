@@ -1,0 +1,7 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/lol-coach-Backend/.venv-local/Scripts/python.exe",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/lol-coach-Backend/src"
+    ],
+    "python.terminal.activateEnvironment": false
+}

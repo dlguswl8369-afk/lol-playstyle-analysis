@@ -1,0 +1,7 @@
+-r requirements-rag.txt
+
+fastapi
+uvicorn[standard]
+python-dotenv>=1,<2
+pydantic>=2.7,<3
+requests>=2.32,<3

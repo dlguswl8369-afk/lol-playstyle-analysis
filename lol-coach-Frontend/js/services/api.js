@@ -28,8 +28,38 @@ async function getPlayerAnalysis(gameName, tagLine, matchCount = 20) {
   return response.json();
 }
 
-async function askCoach(question, gameName, tagLine, matchCount = 10) {
-  const response = await fetch("/api/chat", {
+async function getCoachingReport(gameName, tagLine, matchCount = 10) {
+  const response = await fetch("/api/coaching-report", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      riot_id: gameName,
+      tag_line: tagLine,
+      match_count: matchCount,
+    }),
+  });
+
+  if (!response.ok) {
+    let message = `코칭 리포트 생성에 실패했습니다 (HTTP ${response.status}).`;
+    try {
+      const body = await response.json();
+      const detail = body?.detail;
+      if (detail?.error_code === "DATABRICKS_CONFIG_MISSING") {
+        message = `Databricks 설정이 필요합니다: ${(detail.missing ?? []).join(", ")}`;
+      } else if (detail?.message) {
+        message = detail.message;
+      }
+    } catch (_) {
+      // Keep the safe HTTP fallback when the server did not return JSON.
+    }
+    throw new Error(message);
+  }
+
+  return response.json();
+}
+
+async function askRag(question, gameName = "", tagLine = "", matchCount = 10) {
+  const response = await fetch("/api/rag", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -41,10 +71,22 @@ async function askCoach(question, gameName, tagLine, matchCount = 10) {
   });
 
   if (!response.ok) {
-    throw new Error(`코칭 요청에 실패했습니다 (HTTP ${response.status}).`);
+    let message = `정보 검색에 실패했습니다 (HTTP ${response.status}).`;
+    try {
+      const body = await response.json();
+      const detail = body?.detail;
+      if (detail?.message) {
+        message = detail.message;
+      } else if (detail?.error_code === "RAG_CONFIG_MISSING") {
+        message = `RAG 설정이 필요합니다: ${(detail.missing ?? []).join(", ")}`;
+      }
+    } catch (_) {
+      // Keep the HTTP fallback when the server did not return JSON.
+    }
+    throw new Error(message);
   }
 
   return response.json();
 }
 
-window.APP_API = { getPlayerAnalysis, askCoach };
+window.APP_API = { getPlayerAnalysis, getCoachingReport, askRag };

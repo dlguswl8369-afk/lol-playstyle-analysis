@@ -1,9 +1,8 @@
-import io
 import os
-import shutil
+import io
 import zipfile
-
 import requests
+import shutil
 
 SAVE_DIR = "assets/image/tier_images"
 os.makedirs(SAVE_DIR, exist_ok=True)

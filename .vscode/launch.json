@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Rift Coach: 백엔드 디버그",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/lol-coach-Backend/.venv/Scripts/python.exe",
+            "program": "${workspaceFolder}/lol-coach-Backend/main.py",
+            "cwd": "${workspaceFolder}/lol-coach-Backend",
+            "console": "internalConsole",
+            "justMyCode": true
+        }
+    ]
+}

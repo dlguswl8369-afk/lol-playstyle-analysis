@@ -1,5 +1,4 @@
 import os
-
 import requests
 
 SAVE_DIR = "assets/image/rune_images"

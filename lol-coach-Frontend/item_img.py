@@ -1,6 +1,5 @@
-import os
-
 import requests
+import os
 
 SAVE_DIR = "assets/image/item_images"
 os.makedirs(SAVE_DIR, exist_ok=True)

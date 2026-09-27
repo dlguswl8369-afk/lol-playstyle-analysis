@@ -1,0 +1,3011 @@
+{
+  "version": "20260922_005737",
+  "artifact_type": "explainable_playstyle",
+  "authoritative_source": "ml-training/04_ml_training_v8.py",
+  "analysis_games": 10,
+  "queue_filter": 420,
+  "config": {
+    "style_features": [
+      "kill_participation",
+      "damage_share",
+      "gold_share",
+      "damage_taken_per_min",
+      "vision_score_per_min"
+    ],
+    "perf_features": [
+      "objective_damage_per_min",
+      "cs_per_min",
+      "gold_per_min",
+      "damage_per_min",
+      "kda",
+      "resource_efficiency"
+    ],
+    "perf_families": {
+      "growth": [
+        "cs_per_min",
+        "gold_per_min"
+      ],
+      "combat": [
+        "kda"
+      ],
+      "damage": [
+        "damage_per_min",
+        "resource_efficiency"
+      ],
+      "objective": [
+        "objective_damage_per_min"
+      ]
+    },
+    "z_clip": 3.0,
+    "analysis_games": 10,
+    "min_games": 5,
+    "min_position_games": 5,
+    "min_duration": 900,
+    "strength_threshold": 0.35,
+    "improvement_threshold": 0.3,
+    "always_show_strength": true,
+    "always_show_improvement": true,
+    "min_reliability": 0.55,
+    "low_reliability_mode": "flag",
+    "trend_threshold": 0.7,
+    "trend_min_games": 5,
+    "dominant_share": 0.4,
+    "mixed_share": 0.3,
+    "mixed_top2": 0.6,
+    "style_baseline_cut": 0.3,
+    "has_tier": true,
+    "queue_filter": 420
+  },
+  "model_diagnostics": {
+    "chosen_k": {
+      "TOP": 3,
+      "JUNGLE": 3,
+      "MIDDLE": 3,
+      "BOTTOM": 3,
+      "UTILITY": 3
+    },
+    "k_metrics": {
+      "TOP": {
+        "k": 3,
+        "silhouette": 0.228,
+        "min_share": 0.2844,
+        "max_share": 0.3751,
+        "ari_mean": 0.9553,
+        "ari_min": 0.9009,
+        "inertia": 14059.0
+      },
+      "JUNGLE": {
+        "k": 3,
+        "silhouette": 0.2352,
+        "min_share": 0.3213,
+        "max_share": 0.3482,
+        "ari_mean": 0.9681,
+        "ari_min": 0.9475,
+        "inertia": 13960.5
+      },
+      "MIDDLE": {
+        "k": 3,
+        "silhouette": 0.2284,
+        "min_share": 0.3025,
+        "max_share": 0.3712,
+        "ari_mean": 0.9581,
+        "ari_min": 0.9267,
+        "inertia": 13765.4
+      },
+      "BOTTOM": {
+        "k": 3,
+        "silhouette": 0.2359,
+        "min_share": 0.3157,
+        "max_share": 0.365,
+        "ari_mean": 0.9656,
+        "ari_min": 0.9435,
+        "inertia": 11898.8
+      },
+      "UTILITY": {
+        "k": 3,
+        "silhouette": 0.2047,
+        "min_share": 0.2828,
+        "max_share": 0.3722,
+        "ari_mean": 0.8794,
+        "ari_min": 0.7634,
+        "inertia": 15451.6
+      }
+    },
+    "tier_coverage": 0.9781,
+    "label_assignment": [
+      {
+        "team_position": "TOP",
+        "cluster": 0,
+        "label": "앞라인 탱커형",
+        "score": 1.698,
+        "margin": 2.09,
+        "dominant_feature": "damage_taken_per_min"
+      },
+      {
+        "team_position": "TOP",
+        "cluster": 1,
+        "label": "시야 운영형",
+        "score": 1.357,
+        "margin": 1.705,
+        "dominant_feature": "vision_score_per_min"
+      },
+      {
+        "team_position": "TOP",
+        "cluster": 2,
+        "label": "딜 캐리형",
+        "score": 0.612,
+        "margin": 1.424,
+        "dominant_feature": "vision_score_per_min"
+      },
+      {
+        "team_position": "JUNGLE",
+        "cluster": 0,
+        "label": "탱커 정글러형",
+        "score": 1.566,
+        "margin": 1.996,
+        "dominant_feature": "damage_taken_per_min"
+      },
+      {
+        "team_position": "JUNGLE",
+        "cluster": 1,
+        "label": "시야 운영형",
+        "score": 1.451,
+        "margin": 1.793,
+        "dominant_feature": "vision_score_per_min"
+      },
+      {
+        "team_position": "JUNGLE",
+        "cluster": 2,
+        "label": "캐리 정글러형",
+        "score": 0.721,
+        "margin": 1.652,
+        "dominant_feature": "vision_score_per_min"
+      },
+      {
+        "team_position": "MIDDLE",
+        "cluster": 0,
+        "label": "전방 압박형",
+        "score": 1.539,
+        "margin": 1.87,
+        "dominant_feature": "damage_taken_per_min"
+      },
+      {
+        "team_position": "MIDDLE",
+        "cluster": 1,
+        "label": "시야 운영형",
+        "score": 1.522,
+        "margin": 1.908,
+        "dominant_feature": "vision_score_per_min"
+      },
+      {
+        "team_position": "MIDDLE",
+        "cluster": 2,
+        "label": "딜 캐리형",
+        "score": 0.607,
+        "margin": 1.371,
+        "dominant_feature": "vision_score_per_min"
+      },
+      {
+        "team_position": "BOTTOM",
+        "cluster": 0,
+        "label": "전방 압박형",
+        "score": 1.372,
+        "margin": 1.64,
+        "dominant_feature": "damage_taken_per_min"
+      },
+      {
+        "team_position": "BOTTOM",
+        "cluster": 1,
+        "label": "딜 캐리형",
+        "score": 0.591,
+        "margin": 1.353,
+        "dominant_feature": "damage_taken_per_min"
+      },
+      {
+        "team_position": "BOTTOM",
+        "cluster": 2,
+        "label": "시야 운영형",
+        "score": 1.512,
+        "margin": 1.923,
+        "dominant_feature": "vision_score_per_min"
+      },
+      {
+        "team_position": "UTILITY",
+        "cluster": 0,
+        "label": "이니시에이팅형",
+        "score": 1.013,
+        "margin": 1.198,
+        "dominant_feature": "damage_taken_per_min"
+      },
+      {
+        "team_position": "UTILITY",
+        "cluster": 1,
+        "label": "교전·시야 기여형",
+        "score": 0.856,
+        "margin": 1.192,
+        "dominant_feature": "vision_score_per_min"
+      },
+      {
+        "team_position": "UTILITY",
+        "cluster": 2,
+        "label": "딜 서포터형",
+        "score": 1.175,
+        "margin": 1.89,
+        "dominant_feature": "vision_score_per_min"
+      }
+    ]
+  },
+  "reliability": {
+    "cs_per_min": 0.7161,
+    "damage_per_min": 0.5776,
+    "damage_share": 0.6251,
+    "damage_taken_per_min": 0.6462,
+    "gold_per_min": 0.5667,
+    "gold_share": 0.5896,
+    "kda": 0.4322,
+    "kill_participation": 0.3884,
+    "objective_damage_per_min": 0.4907,
+    "resource_efficiency": 0.6129,
+    "vision_score_per_min": 0.7688
+  },
+  "stats": {
+    "BOTTOM|ALL": {
+      "cs_per_min": {
+        "center": 7.801539777587681,
+        "sigma": 1.3613283632507907
+      },
+      "damage_per_min": {
+        "center": 803.6013986013986,
+        "sigma": 348.5997018801604
+      },
+      "damage_share": {
+        "center": 0.23065578197378533,
+        "sigma": 0.07183433246769066
+      },
+      "damage_taken_per_min": {
+        "center": 730.258449304175,
+        "sigma": 191.4928888016652
+      },
+      "gold_per_min": {
+        "center": 478.30618892508147,
+        "sigma": 96.03350348549787
+      },
+      "gold_share": {
+        "center": 0.23093567863748996,
+        "sigma": 0.033095168138086224
+      },
+      "kda": {
+        "center": 2.3333333333333335,
+        "sigma": 2.1620953792933038
+      },
+      "kill_participation": {
+        "center": 0.48,
+        "sigma": 0.15594207091070167
+      },
+      "objective_damage_per_min": {
+        "center": 364.16666666666663,
+        "sigma": 322.1993717131422
+      },
+      "resource_efficiency": {
+        "center": 0.9940259001035585,
+        "sigma": 0.22776242097647872
+      },
+      "vision_score_per_min": {
+        "center": 0.6826347305389222,
+        "sigma": 0.28515586159093514
+      }
+    },
+    "BOTTOM|DIAMOND_PLUS": {
+      "cs_per_min": {
+        "center": 8.306010928961749,
+        "sigma": 1.1614486734021958
+      },
+      "damage_per_min": {
+        "center": 822.0,
+        "sigma": 340.46204661550075
+      },
+      "damage_share": {
+        "center": 0.2357160995429152,
+        "sigma": 0.0690106913592426
+      },
+      "damage_taken_per_min": {
+        "center": 721.628664495114,
+        "sigma": 188.8931513280833
+      },
+      "gold_per_min": {
+        "center": 495.83732057416273,
+        "sigma": 95.9555868695302
+      },
+      "gold_share": {
+        "center": 0.23372964444694877,
+        "sigma": 0.031930111906909364
+      },
+      "kda": {
+        "center": 2.4285714285714284,
+        "sigma": 2.250344170284867
+      },
+      "kill_participation": {
+        "center": 0.5,
+        "sigma": 0.15649452269170577
+      },
+      "objective_damage_per_min": {
+        "center": 376.8658178256611,
+        "sigma": 328.57106748400287
+      },
+      "resource_efficiency": {
+        "center": 1.0112796103988435,
+        "sigma": 0.21622821628752942
+      },
+      "vision_score_per_min": {
+        "center": 0.7803901950975487,
+        "sigma": 0.3181380483772728
+      }
+    },
+    "BOTTOM|EMERALD": {
+      "cs_per_min": {
+        "center": 7.884022208513263,
+        "sigma": 1.1479696894819205
+      },
+      "damage_per_min": {
+        "center": 858.904593639576,
+        "sigma": 365.677906726953
+      },
+      "damage_share": {
+        "center": 0.2348820377293342,
+        "sigma": 0.0742035382867835
+      },
+      "damage_taken_per_min": {
+        "center": 763.0366492146596,
+        "sigma": 197.76109308953994
+      },
+      "gold_per_min": {
+        "center": 482.82009724473255,
+        "sigma": 85.02474325862929
+      },
+      "gold_share": {
+        "center": 0.23376788900622703,
+        "sigma": 0.03111287974073588
+      },
+      "kda": {
+        "center": 2.3333333333333335,
+        "sigma": 1.9458858413639732
+      },
+      "kill_participation": {
+        "center": 0.4878048780487805,
+        "sigma": 0.14796496892735653
+      },
+      "objective_damage_per_min": {
+        "center": 381.1875,
+        "sigma": 349.9397434667567
+      },
+      "resource_efficiency": {
+        "center": 1.0129530866943939,
+        "sigma": 0.23386888767478256
+      },
+      "vision_score_per_min": {
+        "center": 0.6826347305389222,
+        "sigma": 0.26043733911372813
+      }
+    },
+    "BOTTOM|GOLD": {
+      "cs_per_min": {
+        "center": 7.534246575342466,
+        "sigma": 1.099257562535101
+      },
+      "damage_per_min": {
+        "center": 823.0709046454767,
+        "sigma": 343.7517989249002
+      },
+      "damage_share": {
+        "center": 0.22778735407035963,
+        "sigma": 0.06907365856151282
+      },
+      "damage_taken_per_min": {
+        "center": 743.7937619350732,
+        "sigma": 185.3009371984113
+      },
+      "gold_per_min": {
+        "center": 471.63172288058337,
+        "sigma": 92.61261401024622
+      },
+      "gold_share": {
+        "center": 0.23006372649788895,
+        "sigma": 0.03250170642553132
+      },
+      "kda": {
+        "center": 2.2857142857142856,
+        "sigma": 1.9767729182110207
+      },
+      "kill_participation": {
+        "center": 0.47368421052631576,
+        "sigma": 0.15048741200666602
+      },
+      "objective_damage_per_min": {
+        "center": 386.3728409767719,
+        "sigma": 342.12215617022724
+      },
+      "resource_efficiency": {
+        "center": 0.9789677697718976,
+        "sigma": 0.2184639077704514
+      },
+      "vision_score_per_min": {
+        "center": 0.6158833063209076,
+        "sigma": 0.25542528163931827
+      }
+    },
+    "BOTTOM|IRON_BRONZE": {
+      "cs_per_min": {
+        "center": 6.475315729047073,
+        "sigma": 1.3053237531599362
+      },
+      "damage_per_min": {
+        "center": 718.608597285068,
+        "sigma": 351.775568130387
+      },
+      "damage_share": {
+        "center": 0.2122110353050275,
+        "sigma": 0.0776343661369274
+      },
+      "damage_taken_per_min": {
+        "center": 721.1048839071257,
+        "sigma": 196.83126396903603
+      },
+      "gold_per_min": {
+        "center": 430.9211252068395,
+        "sigma": 96.56636348926477
+      },
+      "gold_share": {
+        "center": 0.22129463138967378,
+        "sigma": 0.037868555539710295
+      },
+      "kda": {
+        "center": 2.142857142857143,
+        "sigma": 2.0756115641215716
+      },
+      "kill_participation": {
+        "center": 0.4444444444444444,
+        "sigma": 0.15762163005735244
+      },
+      "objective_damage_per_min": {
+        "center": 306.2722573233774,
+        "sigma": 274.94643580351965
+      },
+      "resource_efficiency": {
+        "center": 0.9528659229351641,
+        "sigma": 0.2411749142806411
+      },
+      "vision_score_per_min": {
+        "center": 0.56353591160221,
+        "sigma": 0.24453459234448194
+      }
+    },
+    "BOTTOM|PLATINUM": {
+      "cs_per_min": {
+        "center": 7.6916181084715385,
+        "sigma": 1.1743874233788298
+      },
+      "damage_per_min": {
+        "center": 825.3351955307262,
+        "sigma": 359.5929754182296
+      },
+      "damage_share": {
+        "center": 0.230555445269385,
+        "sigma": 0.07033056792822612
+      },
+      "damage_taken_per_min": {
+        "center": 751.6148597422289,
+        "sigma": 196.3718932637031
+      },
+      "gold_per_min": {
+        "center": 479.8178506375228,
+        "sigma": 87.50130603650243
+      },
+      "gold_share": {
+        "center": 0.23101620947630921,
+        "sigma": 0.030460867731673606
+      },
+      "kda": {
+        "center": 2.4444444444444446,
+        "sigma": 2.2238695329873983
+      },
+      "kill_participation": {
+        "center": 0.4827586206896552,
+        "sigma": 0.14968352625876713
+      },
+      "objective_damage_per_min": {
+        "center": 376.4175416924027,
+        "sigma": 357.3543597458371
+      },
+      "resource_efficiency": {
+        "center": 0.9947872701674897,
+        "sigma": 0.23123367290886573
+      },
+      "vision_score_per_min": {
+        "center": 0.6335403726708074,
+        "sigma": 0.25145998048285584
+      }
+    },
+    "BOTTOM|SILVER": {
+      "cs_per_min": {
+        "center": 7.093184979137692,
+        "sigma": 1.2579036711630212
+      },
+      "damage_per_min": {
+        "center": 759.8235942668136,
+        "sigma": 354.81821766634266
+      },
+      "damage_share": {
+        "center": 0.22242396193053035,
+        "sigma": 0.07731447431652325
+      },
+      "damage_taken_per_min": {
+        "center": 733.218045112782,
+        "sigma": 202.02001103650687
+      },
+      "gold_per_min": {
+        "center": 456.34736842105264,
+        "sigma": 92.55686793435115
+      },
+      "gold_share": {
+        "center": 0.22504382432368408,
+        "sigma": 0.035510225781640814
+      },
+      "kda": {
+        "center": 2.2222222222222223,
+        "sigma": 2.038547071905115
+      },
+      "kill_participation": {
+        "center": 0.45454545454545453,
+        "sigma": 0.1595557017874203
+      },
+      "objective_damage_per_min": {
+        "center": 361.3186813186813,
+        "sigma": 306.00063822849023
+      },
+      "resource_efficiency": {
+        "center": 0.9639540095776994,
+        "sigma": 0.24796940033269532
+      },
+      "vision_score_per_min": {
+        "center": 0.6009488666315235,
+        "sigma": 0.2287861704422992
+      }
+    },
+    "JUNGLE|ALL": {
+      "cs_per_min": {
+        "center": 6.592920353982301,
+        "sigma": 1.2265814567036082
+      },
+      "damage_per_min": {
+        "center": 636.7289719626168,
+        "sigma": 283.64865171852523
+      },
+      "damage_share": {
+        "center": 0.18174215270989463,
+        "sigma": 0.05843935422142897
+      },
+      "damage_taken_per_min": {
+        "center": 1009.6692607003891,
+        "sigma": 259.9063858574749
+      },
+      "gold_per_min": {
+        "center": 442.52346193952036,
+        "sigma": 80.03550816119713
+      },
+      "gold_share": {
+        "center": 0.21345115572802428,
+        "sigma": 0.02844575076408287
+      },
+      "kda": {
+        "center": 2.8,
+        "sigma": 2.7386541471048513
+      },
+      "kill_participation": {
+        "center": 0.5172413793103449,
+        "sigma": 0.1473075972705328
+      },
+      "objective_damage_per_min": {
+        "center": 863.5667396061269,
+        "sigma": 613.6721839450536
+      },
+      "resource_efficiency": {
+        "center": 0.8496124608304089,
+        "sigma": 0.21045442709649534
+      },
+      "vision_score_per_min": {
+        "center": 1.0526315789473684,
+        "sigma": 0.3781989485312833
+      }
+    },
+    "JUNGLE|DIAMOND_PLUS": {
+      "cs_per_min": {
+        "center": 6.974789915966386,
+        "sigma": 1.1577266121300829
+      },
+      "damage_per_min": {
+        "center": 657.1914893617021,
+        "sigma": 281.1922929272653
+      },
+      "damage_share": {
+        "center": 0.18843082236132097,
+        "sigma": 0.05624255831321156
+      },
+      "damage_taken_per_min": {
+        "center": 980.3021148036254,
+        "sigma": 245.66359690646976
+      },
+      "gold_per_min": {
+        "center": 460.6689419795222,
+        "sigma": 80.5741720067595
+      },
+      "gold_share": {
+        "center": 0.21664680338086822,
+        "sigma": 0.027986213466000564
+      },
+      "kda": {
+        "center": 3.0,
+        "sigma": 3.212255992092908
+      },
+      "kill_participation": {
+        "center": 0.5555555555555556,
+        "sigma": 0.1399002892483903
+      },
+      "objective_damage_per_min": {
+        "center": 905.9593679458238,
+        "sigma": 620.7119485811666
+      },
+      "resource_efficiency": {
+        "center": 0.8720720007299156,
+        "sigma": 0.2013423799552344
+      },
+      "vision_score_per_min": {
+        "center": 1.1764705882352942,
+        "sigma": 0.37101347860026185
+      }
+    },
+    "JUNGLE|EMERALD": {
+      "cs_per_min": {
+        "center": 6.483050847457627,
+        "sigma": 1.0778458793046357
+      },
+      "damage_per_min": {
+        "center": 668.1176470588235,
+        "sigma": 280.21476915506605
+      },
+      "damage_share": {
+        "center": 0.18308482033732584,
+        "sigma": 0.05743183691242228
+      },
+      "damage_taken_per_min": {
+        "center": 1037.0756457564576,
+        "sigma": 268.71243635893586
+      },
+      "gold_per_min": {
+        "center": 440.9347826086956,
+        "sigma": 70.06035022121007
+      },
+      "gold_share": {
+        "center": 0.210480093676815,
+        "sigma": 0.02687004164517516
+      },
+      "kda": {
+        "center": 2.6666666666666665,
+        "sigma": 2.353595255744996
+      },
+      "kill_participation": {
+        "center": 0.5121951219512195,
+        "sigma": 0.1323731864873451
+      },
+      "objective_damage_per_min": {
+        "center": 871.5034168564921,
+        "sigma": 584.6797931634076
+      },
+      "resource_efficiency": {
+        "center": 0.865116189174274,
+        "sigma": 0.20359701225872548
+      },
+      "vision_score_per_min": {
+        "center": 1.1165523996082274,
+        "sigma": 0.3371013827905692
+      }
+    },
+    "JUNGLE|GOLD": {
+      "cs_per_min": {
+        "center": 6.2835538752362945,
+        "sigma": 1.1230477194578636
+      },
+      "damage_per_min": {
+        "center": 646.5030060120241,
+        "sigma": 287.96245913138455
+      },
+      "damage_share": {
+        "center": 0.18095202211682923,
+        "sigma": 0.06076761629499574
+      },
+      "damage_taken_per_min": {
+        "center": 1052.0070422535211,
+        "sigma": 295.49530608889705
+      },
+      "gold_per_min": {
+        "center": 437.719298245614,
+        "sigma": 71.13517105284738
+      },
+      "gold_share": {
+        "center": 0.21333051907913583,
+        "sigma": 0.030210255979630396
+      },
+      "kda": {
+        "center": 2.7777777777777777,
+        "sigma": 2.501853224610823
+      },
+      "kill_participation": {
+        "center": 0.5,
+        "sigma": 0.14065499610347645
+      },
+      "objective_damage_per_min": {
+        "center": 836.7480643240024,
+        "sigma": 647.6614137228817
+      },
+      "resource_efficiency": {
+        "center": 0.8496124608304089,
+        "sigma": 0.21384772508733074
+      },
+      "vision_score_per_min": {
+        "center": 1.0174152153987168,
+        "sigma": 0.34323785975225174
+      }
+    },
+    "JUNGLE|IRON_BRONZE": {
+      "cs_per_min": {
+        "center": 5.851938895417156,
+        "sigma": 1.1915923385814866
+      },
+      "damage_per_min": {
+        "center": 562.203947368421,
+        "sigma": 289.4107011035072
+      },
+      "damage_share": {
+        "center": 0.16328110718011032,
+        "sigma": 0.06357806081164949
+      },
+      "damage_taken_per_min": {
+        "center": 1041.5825242718445,
+        "sigma": 270.5318658069774
+      },
+      "gold_per_min": {
+        "center": 405.52220888355345,
+        "sigma": 76.72951958429363
+      },
+      "gold_share": {
+        "center": 0.20755579252037473,
+        "sigma": 0.03130410301687157
+      },
+      "kda": {
+        "center": 2.3333333333333335,
+        "sigma": 2.347417840375587
+      },
+      "kill_participation": {
+        "center": 0.4411764705882353,
+        "sigma": 0.16061279960464547
+      },
+      "objective_damage_per_min": {
+        "center": 790.1059322033899,
+        "sigma": 592.2205734528522
+      },
+      "resource_efficiency": {
+        "center": 0.7944016945607084,
+        "sigma": 0.23841552615740672
+      },
+      "vision_score_per_min": {
+        "center": 0.821917808219178,
+        "sigma": 0.2913331616090704
+      }
+    },
+    "JUNGLE|PLATINUM": {
+      "cs_per_min": {
+        "center": 6.390278770550394,
+        "sigma": 1.219524999412385
+      },
+      "damage_per_min": {
+        "center": 629.5911413969336,
+        "sigma": 267.8016444943846
+      },
+      "damage_share": {
+        "center": 0.17800349449285618,
+        "sigma": 0.05812308776887535
+      },
+      "damage_taken_per_min": {
+        "center": 1021.750137589433,
+        "sigma": 279.3702122533119
+      },
+      "gold_per_min": {
+        "center": 437.73333333333335,
+        "sigma": 79.65135871657829
+      },
+      "gold_share": {
+        "center": 0.21249250080760534,
+        "sigma": 0.02688642631795184
+      },
+      "kda": {
+        "center": 2.8333333333333335,
+        "sigma": 2.7798369162342476
+      },
+      "kill_participation": {
+        "center": 0.5,
+        "sigma": 0.15170582860689222
+      },
+      "objective_damage_per_min": {
+        "center": 833.4933774834437,
+        "sigma": 605.0278817302274
+      },
+      "resource_efficiency": {
+        "center": 0.8240647854785287,
+        "sigma": 0.19169453380320053
+      },
+      "vision_score_per_min": {
+        "center": 1.034025629695095,
+        "sigma": 0.33150116020161513
+      }
+    },
+    "JUNGLE|SILVER": {
+      "cs_per_min": {
+        "center": 6.14218009478673,
+        "sigma": 1.191482994554734
+      },
+      "damage_per_min": {
+        "center": 611.7089305402426,
+        "sigma": 290.8488615589374
+      },
+      "damage_share": {
+        "center": 0.1754380599981652,
+        "sigma": 0.05786314942236121
+      },
+      "damage_taken_per_min": {
+        "center": 1029.9943342776203,
+        "sigma": 262.70503595388215
+      },
+      "gold_per_min": {
+        "center": 425.1162790697674,
+        "sigma": 75.70689629667369
+      },
+      "gold_share": {
+        "center": 0.20948732549912857,
+        "sigma": 0.028313584785659745
+      },
+      "kda": {
+        "center": 2.7142857142857144,
+        "sigma": 2.400367114970525
+      },
+      "kill_participation": {
+        "center": 0.47619047619047616,
+        "sigma": 0.13378116632618176
+      },
+      "objective_damage_per_min": {
+        "center": 828.076225045372,
+        "sigma": 625.2003173013458
+      },
+      "resource_efficiency": {
+        "center": 0.8260457503550809,
+        "sigma": 0.21319063846012737
+      },
+      "vision_score_per_min": {
+        "center": 0.8857509627727856,
+        "sigma": 0.31031823441577905
+      }
+    },
+    "MIDDLE|ALL": {
+      "cs_per_min": {
+        "center": 7.138810198300283,
+        "sigma": 1.4215565587309873
+      },
+      "damage_per_min": {
+        "center": 798.3140495867768,
+        "sigma": 301.28588985664777
+      },
+      "damage_share": {
+        "center": 0.2265006650240935,
+        "sigma": 0.06405694458936276
+      },
+      "damage_taken_per_min": {
+        "center": 841.3665943600868,
+        "sigma": 243.95011223986927
+      },
+      "gold_per_min": {
+        "center": 412.3525423728814,
+        "sigma": 73.50045386570326
+      },
+      "gold_share": {
+        "center": 0.1999352289656066,
+        "sigma": 0.028859668570729826
+      },
+      "kda": {
+        "center": 2.2222222222222223,
+        "sigma": 2.0756115641215716
+      },
+      "kill_participation": {
+        "center": 0.42857142857142855,
+        "sigma": 0.15417582896761373
+      },
+      "objective_damage_per_min": {
+        "center": 267.8126852400711,
+        "sigma": 206.06458505499612
+      },
+      "resource_efficiency": {
+        "center": 1.1373096134694303,
+        "sigma": 0.24057510582739589
+      },
+      "vision_score_per_min": {
+        "center": 0.7544672402382528,
+        "sigma": 0.29422837130595
+      }
+    },
+    "MIDDLE|DIAMOND_PLUS": {
+      "cs_per_min": {
+        "center": 7.658349328214971,
+        "sigma": 1.249898456349967
+      },
+      "damage_per_min": {
+        "center": 787.5569044006069,
+        "sigma": 284.20367815597825
+      },
+      "damage_share": {
+        "center": 0.22711456949452774,
+        "sigma": 0.06033956809846498
+      },
+      "damage_taken_per_min": {
+        "center": 831.7397881996974,
+        "sigma": 244.007708054634
+      },
+      "gold_per_min": {
+        "center": 422.98693217174855,
+        "sigma": 70.73307605107757
+      },
+      "gold_share": {
+        "center": 0.2004955348389512,
+        "sigma": 0.02692925331587161
+      },
+      "kda": {
+        "center": 2.4,
+        "sigma": 2.3923444976076556
+      },
+      "kill_participation": {
+        "center": 0.4473684210526316,
+        "sigma": 0.15337031261982054
+      },
+      "objective_damage_per_min": {
+        "center": 278.90470974808323,
+        "sigma": 210.36564212863385
+      },
+      "resource_efficiency": {
+        "center": 1.131759018112415,
+        "sigma": 0.2350978561292151
+      },
+      "vision_score_per_min": {
+        "center": 0.8253968253968254,
+        "sigma": 0.2996445439564428
+      }
+    },
+    "MIDDLE|EMERALD": {
+      "cs_per_min": {
+        "center": 7.107790821771611,
+        "sigma": 1.1996327192810743
+      },
+      "damage_per_min": {
+        "center": 831.3546798029556,
+        "sigma": 300.0459845631315
+      },
+      "damage_share": {
+        "center": 0.22336305503017204,
+        "sigma": 0.06441913615255447
+      },
+      "damage_taken_per_min": {
+        "center": 857.3095623987034,
+        "sigma": 248.47730958734923
+      },
+      "gold_per_min": {
+        "center": 413.65413533834584,
+        "sigma": 73.88108131013165
+      },
+      "gold_share": {
+        "center": 0.20000595965314819,
+        "sigma": 0.02676813557939055
+      },
+      "kda": {
+        "center": 2.2,
+        "sigma": 2.0756115641215716
+      },
+      "kill_participation": {
+        "center": 0.42105263157894735,
+        "sigma": 0.13899184581171242
+      },
+      "objective_damage_per_min": {
+        "center": 271.9331742243437,
+        "sigma": 194.67064828748437
+      },
+      "resource_efficiency": {
+        "center": 1.1501000260303014,
+        "sigma": 0.2401048829318535
+      },
+      "vision_score_per_min": {
+        "center": 0.7539874335427743,
+        "sigma": 0.2783633800331668
+      }
+    },
+    "MIDDLE|GOLD": {
+      "cs_per_min": {
+        "center": 6.843971631205674,
+        "sigma": 1.24433041458257
+      },
+      "damage_per_min": {
+        "center": 813.5444947209653,
+        "sigma": 318.45682645216687
+      },
+      "damage_share": {
+        "center": 0.2258630702716655,
+        "sigma": 0.06559299125520247
+      },
+      "damage_taken_per_min": {
+        "center": 850.3088803088804,
+        "sigma": 218.54872610338845
+      },
+      "gold_per_min": {
+        "center": 410.2252488213725,
+        "sigma": 69.51356860608306
+      },
+      "gold_share": {
+        "center": 0.1985099898408398,
+        "sigma": 0.030706280758829023
+      },
+      "kda": {
+        "center": 2.1666666666666665,
+        "sigma": 1.7976278724981467
+      },
+      "kill_participation": {
+        "center": 0.4117647058823529,
+        "sigma": 0.15451202710582415
+      },
+      "objective_damage_per_min": {
+        "center": 260.9441316587267,
+        "sigma": 196.32179090348384
+      },
+      "resource_efficiency": {
+        "center": 1.1345988064698602,
+        "sigma": 0.2506286369775689
+      },
+      "vision_score_per_min": {
+        "center": 0.7504466944609887,
+        "sigma": 0.2877978393702113
+      }
+    },
+    "MIDDLE|IRON_BRONZE": {
+      "cs_per_min": {
+        "center": 5.981140547822182,
+        "sigma": 1.4477949230579907
+      },
+      "damage_per_min": {
+        "center": 795.3574580759047,
+        "sigma": 327.5849915531252
+      },
+      "damage_share": {
+        "center": 0.2285648227019397,
+        "sigma": 0.0747659021643635
+      },
+      "damage_taken_per_min": {
+        "center": 855.5448717948718,
+        "sigma": 250.21667327284945
+      },
+      "gold_per_min": {
+        "center": 392.0164186762442,
+        "sigma": 82.12965506801295
+      },
+      "gold_share": {
+        "center": 0.20017954786582878,
+        "sigma": 0.0347626121422066
+      },
+      "kda": {
+        "center": 2.0,
+        "sigma": 2.038547071905115
+      },
+      "kill_participation": {
+        "center": 0.4,
+        "sigma": 0.1510034868077863
+      },
+      "objective_damage_per_min": {
+        "center": 244.8466019417476,
+        "sigma": 201.4992172284191
+      },
+      "resource_efficiency": {
+        "center": 1.1439780981302223,
+        "sigma": 0.2531473338248678
+      },
+      "vision_score_per_min": {
+        "center": 0.6278434940855323,
+        "sigma": 0.2714411039307317
+      }
+    },
+    "MIDDLE|PLATINUM": {
+      "cs_per_min": {
+        "center": 6.9555796316359695,
+        "sigma": 1.3037913358103599
+      },
+      "damage_per_min": {
+        "center": 804.1334894613584,
+        "sigma": 329.13825093604925
+      },
+      "damage_share": {
+        "center": 0.2271113931786663,
+        "sigma": 0.06651210237197591
+      },
+      "damage_taken_per_min": {
+        "center": 839.3170731707318,
+        "sigma": 249.70163832416154
+      },
+      "gold_per_min": {
+        "center": 413.4921630094044,
+        "sigma": 73.69800196528003
+      },
+      "gold_share": {
+        "center": 0.19976362920088486,
+        "sigma": 0.028979456482045186
+      },
+      "kda": {
+        "center": 2.0,
+        "sigma": 1.8708743690211445
+      },
+      "kill_participation": {
+        "center": 0.41379310344827586,
+        "sigma": 0.1568776182184909
+      },
+      "objective_damage_per_min": {
+        "center": 265.43453510436433,
+        "sigma": 205.99537000337594
+      },
+      "resource_efficiency": {
+        "center": 1.1494878211034911,
+        "sigma": 0.2380375708610279
+      },
+      "vision_score_per_min": {
+        "center": 0.717607973421927,
+        "sigma": 0.29565594005679313
+      }
+    },
+    "MIDDLE|SILVER": {
+      "cs_per_min": {
+        "center": 6.515151515151516,
+        "sigma": 1.3088432651662854
+      },
+      "damage_per_min": {
+        "center": 794.625,
+        "sigma": 313.61341631991104
+      },
+      "damage_share": {
+        "center": 0.22419315765389897,
+        "sigma": 0.06655850617040829
+      },
+      "damage_taken_per_min": {
+        "center": 849.2686002522069,
+        "sigma": 252.5651616109163
+      },
+      "gold_per_min": {
+        "center": 395.53548387096777,
+        "sigma": 74.0163190068015
+      },
+      "gold_share": {
+        "center": 0.19667144807562692,
+        "sigma": 0.030717432186654407
+      },
+      "kda": {
+        "center": 2.0,
+        "sigma": 1.8599636094076422
+      },
+      "kill_participation": {
+        "center": 0.39473684210526316,
+        "sigma": 0.15443538423523598
+      },
+      "objective_damage_per_min": {
+        "center": 259.5493300852619,
+        "sigma": 202.2705698537314
+      },
+      "resource_efficiency": {
+        "center": 1.1325524145274544,
+        "sigma": 0.24190291480140005
+      },
+      "vision_score_per_min": {
+        "center": 0.6936416184971098,
+        "sigma": 0.28332636329976923
+      }
+    },
+    "TOP|ALL": {
+      "cs_per_min": {
+        "center": 7.122618466047875,
+        "sigma": 1.4014822527321538
+      },
+      "damage_per_min": {
+        "center": 768.5678704856788,
+        "sigma": 286.112801366911
+      },
+      "damage_share": {
+        "center": 0.21907791999299464,
+        "sigma": 0.06639490627759337
+      },
+      "damage_taken_per_min": {
+        "center": 1034.1151685393259,
+        "sigma": 299.6915430296882
+      },
+      "gold_per_min": {
+        "center": 401.8736842105263,
+        "sigma": 79.31725345142723
+      },
+      "gold_share": {
+        "center": 0.19398302405331128,
+        "sigma": 0.030207810774253982
+      },
+      "kda": {
+        "center": 1.75,
+        "sigma": 1.7352921355886515
+      },
+      "kill_participation": {
+        "center": 0.34375,
+        "sigma": 0.14825796886582654
+      },
+      "objective_damage_per_min": {
+        "center": 336.04415823367066,
+        "sigma": 238.9945185913547
+      },
+      "resource_efficiency": {
+        "center": 1.1250921716871054,
+        "sigma": 0.25502701010306056
+      },
+      "vision_score_per_min": {
+        "center": 0.7692307692307693,
+        "sigma": 0.2755029737229514
+      }
+    },
+    "TOP|DIAMOND_PLUS": {
+      "cs_per_min": {
+        "center": 7.5079533404029695,
+        "sigma": 1.2710742218334259
+      },
+      "damage_per_min": {
+        "center": 751.6582914572864,
+        "sigma": 266.98586747613695
+      },
+      "damage_share": {
+        "center": 0.21741071982336233,
+        "sigma": 0.06435489268568134
+      },
+      "damage_taken_per_min": {
+        "center": 1013.4392879847426,
+        "sigma": 286.89355604820037
+      },
+      "gold_per_min": {
+        "center": 407.7093844601413,
+        "sigma": 75.35702466377853
+      },
+      "gold_share": {
+        "center": 0.19270027231941697,
+        "sigma": 0.02792379382630485
+      },
+      "kda": {
+        "center": 1.8181818181818181,
+        "sigma": 1.7296763034346432
+      },
+      "kill_participation": {
+        "center": 0.35714285714285715,
+        "sigma": 0.15286828213661333
+      },
+      "objective_damage_per_min": {
+        "center": 345.4791868344628,
+        "sigma": 243.13725818402403
+      },
+      "resource_efficiency": {
+        "center": 1.123168185913079,
+        "sigma": 0.2499343117860938
+      },
+      "vision_score_per_min": {
+        "center": 0.8369098712446352,
+        "sigma": 0.2737991438472828
+      }
+    },
+    "TOP|EMERALD": {
+      "cs_per_min": {
+        "center": 7.283950617283951,
+        "sigma": 1.2523859763181164
+      },
+      "damage_per_min": {
+        "center": 791.0507246376811,
+        "sigma": 279.38692735739505
+      },
+      "damage_share": {
+        "center": 0.2193136251762949,
+        "sigma": 0.06309691240037937
+      },
+      "damage_taken_per_min": {
+        "center": 1062.4615384615383,
+        "sigma": 318.8613500740732
+      },
+      "gold_per_min": {
+        "center": 407.2290502793296,
+        "sigma": 77.93094060180196
+      },
+      "gold_share": {
+        "center": 0.1958717958876431,
+        "sigma": 0.030396106033703223
+      },
+      "kda": {
+        "center": 1.6666666666666667,
+        "sigma": 1.7234988880652338
+      },
+      "kill_participation": {
+        "center": 0.3333333333333333,
+        "sigma": 0.148946739917468
+      },
+      "objective_damage_per_min": {
+        "center": 336.56479217603913,
+        "sigma": 242.73335735932827
+      },
+      "resource_efficiency": {
+        "center": 1.1187630067830838,
+        "sigma": 0.25919462436951063
+      },
+      "vision_score_per_min": {
+        "center": 0.7434944237918215,
+        "sigma": 0.2660308656597961
+      }
+    },
+    "TOP|GOLD": {
+      "cs_per_min": {
+        "center": 6.762360446570972,
+        "sigma": 1.2539604245898537
+      },
+      "damage_per_min": {
+        "center": 791.129909365559,
+        "sigma": 315.5928347998382
+      },
+      "damage_share": {
+        "center": 0.2177528133817272,
+        "sigma": 0.06538357138205197
+      },
+      "damage_taken_per_min": {
+        "center": 1066.2460567823343,
+        "sigma": 317.5686270259402
+      },
+      "gold_per_min": {
+        "center": 394.3934632306725,
+        "sigma": 74.8263551534796
+      },
+      "gold_share": {
+        "center": 0.19274231612849488,
+        "sigma": 0.029390303245859062
+      },
+      "kda": {
+        "center": 1.6666666666666667,
+        "sigma": 1.4825796886582654
+      },
+      "kill_participation": {
+        "center": 0.3333333333333333,
+        "sigma": 0.14825796886582654
+      },
+      "objective_damage_per_min": {
+        "center": 323.3222591362126,
+        "sigma": 228.09339015578388
+      },
+      "resource_efficiency": {
+        "center": 1.1192160650707226,
+        "sigma": 0.2589547809655232
+      },
+      "vision_score_per_min": {
+        "center": 0.752453653217012,
+        "sigma": 0.25572033614888345
+      }
+    },
+    "TOP|IRON_BRONZE": {
+      "cs_per_min": {
+        "center": 6.176980913823019,
+        "sigma": 1.493086271141886
+      },
+      "damage_per_min": {
+        "center": 770.4900938477581,
+        "sigma": 328.46487353451244
+      },
+      "damage_share": {
+        "center": 0.22076581402615955,
+        "sigma": 0.07487778700608033
+      },
+      "damage_taken_per_min": {
+        "center": 1032.3417721518988,
+        "sigma": 323.8972318939065
+      },
+      "gold_per_min": {
+        "center": 386.49504950495054,
+        "sigma": 89.30113777182947
+      },
+      "gold_share": {
+        "center": 0.19587997568041202,
+        "sigma": 0.03599759358550184
+      },
+      "kda": {
+        "center": 1.6666666666666667,
+        "sigma": 1.6943767870380175
+      },
+      "kill_participation": {
+        "center": 0.32608695652173914,
+        "sigma": 0.1466287604167515
+      },
+      "objective_damage_per_min": {
+        "center": 310.0713266761769,
+        "sigma": 240.25501785384856
+      },
+      "resource_efficiency": {
+        "center": 1.1327286404460915,
+        "sigma": 0.2687558937985078
+      },
+      "vision_score_per_min": {
+        "center": 0.6292412091301666,
+        "sigma": 0.262156215560537
+      }
+    },
+    "TOP|PLATINUM": {
+      "cs_per_min": {
+        "center": 6.971201588877855,
+        "sigma": 1.4095260537314749
+      },
+      "damage_per_min": {
+        "center": 768.2770870337478,
+        "sigma": 280.16939023160455
+      },
+      "damage_share": {
+        "center": 0.21592347237132659,
+        "sigma": 0.06728502679789077
+      },
+      "damage_taken_per_min": {
+        "center": 1067.7902285970417,
+        "sigma": 297.513245651535
+      },
+      "gold_per_min": {
+        "center": 397.8118161925602,
+        "sigma": 78.85979070810683
+      },
+      "gold_share": {
+        "center": 0.19265234459112518,
+        "sigma": 0.030673948439114192
+      },
+      "kda": {
+        "center": 1.6666666666666667,
+        "sigma": 1.7132031957828846
+      },
+      "kill_participation": {
+        "center": 0.325,
+        "sigma": 0.1551006443519416
+      },
+      "objective_damage_per_min": {
+        "center": 333.33691563675444,
+        "sigma": 226.18363750011923
+      },
+      "resource_efficiency": {
+        "center": 1.1283018056297338,
+        "sigma": 0.2437739646684677
+      },
+      "vision_score_per_min": {
+        "center": 0.7390029325513197,
+        "sigma": 0.2687041964991089
+      }
+    },
+    "TOP|SILVER": {
+      "cs_per_min": {
+        "center": 6.725507502206532,
+        "sigma": 1.4238517867035367
+      },
+      "damage_per_min": {
+        "center": 799.645390070922,
+        "sigma": 310.48346019211493
+      },
+      "damage_share": {
+        "center": 0.22644174075146345,
+        "sigma": 0.07325574668995948
+      },
+      "damage_taken_per_min": {
+        "center": 1051.3093709884467,
+        "sigma": 303.43031197683774
+      },
+      "gold_per_min": {
+        "center": 400.6258890469417,
+        "sigma": 87.67563623025396
+      },
+      "gold_share": {
+        "center": 0.1988495501267445,
+        "sigma": 0.03340835982379821
+      },
+      "kda": {
+        "center": 1.7142857142857142,
+        "sigma": 1.564945226917058
+      },
+      "kill_participation": {
+        "center": 0.3409090909090909,
+        "sigma": 0.1441396919528869
+      },
+      "objective_damage_per_min": {
+        "center": 334.2745777392811,
+        "sigma": 250.71061556662835
+      },
+      "resource_efficiency": {
+        "center": 1.1244325780336497,
+        "sigma": 0.25352966239614405
+      },
+      "vision_score_per_min": {
+        "center": 0.7221006564551423,
+        "sigma": 0.2754921829008113
+      }
+    },
+    "UTILITY|ALL": {
+      "cs_per_min": {
+        "center": 1.1252511721366376,
+        "sigma": 0.4280665336785338
+      },
+      "damage_per_min": {
+        "center": 368.50180505415165,
+        "sigma": 188.12568472704766
+      },
+      "damage_share": {
+        "center": 0.10649158801805499,
+        "sigma": 0.05163752871323461
+      },
+      "damage_taken_per_min": {
+        "center": 764.6460980036297,
+        "sigma": 240.38106526364467
+      },
+      "gold_per_min": {
+        "center": 309.6243425995492,
+        "sigma": 46.402645372806724
+      },
+      "gold_share": {
+        "center": 0.1485009164702802,
+        "sigma": 0.017723371667736024
+      },
+      "kda": {
+        "center": 2.5,
+        "sigma": 2.202689823149423
+      },
+      "kill_participation": {
+        "center": 0.5365853658536586,
+        "sigma": 0.14886064353601283
+      },
+      "objective_damage_per_min": {
+        "center": 61.865951742627345,
+        "sigma": 79.92638603810036
+      },
+      "resource_efficiency": {
+        "center": 0.7160251207728058,
+        "sigma": 0.2854347934128114
+      },
+      "vision_score_per_min": {
+        "center": 2.7083333333333335,
+        "sigma": 0.8648565725175881
+      }
+    },
+    "UTILITY|DIAMOND_PLUS": {
+      "cs_per_min": {
+        "center": 1.0653409090909092,
+        "sigma": 0.34120114535060225
+      },
+      "damage_per_min": {
+        "center": 333.0222693531283,
+        "sigma": 145.57762647858098
+      },
+      "damage_share": {
+        "center": 0.0974399826194011,
+        "sigma": 0.04159628246959651
+      },
+      "damage_taken_per_min": {
+        "center": 778.8614800759013,
+        "sigma": 231.8728981330008
+      },
+      "gold_per_min": {
+        "center": 308.2505105513955,
+        "sigma": 43.30538115432417
+      },
+      "gold_share": {
+        "center": 0.144286076805955,
+        "sigma": 0.014969497839033426
+      },
+      "kda": {
+        "center": 2.6666666666666665,
+        "sigma": 2.409191994069681
+      },
+      "kill_participation": {
+        "center": 0.5769230769230769,
+        "sigma": 0.13837410427477143
+      },
+      "objective_damage_per_min": {
+        "center": 49.271948608137045,
+        "sigma": 67.93294141224088
+      },
+      "resource_efficiency": {
+        "center": 0.6734856735035026,
+        "sigma": 0.24683586874367305
+      },
+      "vision_score_per_min": {
+        "center": 3.122497998398719,
+        "sigma": 0.7579876900972566
+      }
+    },
+    "UTILITY|EMERALD": {
+      "cs_per_min": {
+        "center": 1.1009174311926604,
+        "sigma": 0.3737066899513832
+      },
+      "damage_per_min": {
+        "center": 355.06068601583115,
+        "sigma": 180.2601790421942
+      },
+      "damage_share": {
+        "center": 0.10045458348439636,
+        "sigma": 0.047998710184850975
+      },
+      "damage_taken_per_min": {
+        "center": 767.7399380804954,
+        "sigma": 241.3827579297702
+      },
+      "gold_per_min": {
+        "center": 309.2986425339367,
+        "sigma": 41.82882218007824
+      },
+      "gold_share": {
+        "center": 0.14827650225880315,
+        "sigma": 0.01643242039105878
+      },
+      "kda": {
+        "center": 2.4444444444444446,
+        "sigma": 2.0052840660698337
+      },
+      "kill_participation": {
+        "center": 0.5357142857142857,
+        "sigma": 0.13575947730446325
+      },
+      "objective_damage_per_min": {
+        "center": 64.98078401229823,
+        "sigma": 76.61237327336089
+      },
+      "resource_efficiency": {
+        "center": 0.6805051890208852,
+        "sigma": 0.2882974273282382
+      },
+      "vision_score_per_min": {
+        "center": 2.7546174142480213,
+        "sigma": 0.7274918207183464
+      }
+    },
+    "UTILITY|GOLD": {
+      "cs_per_min": {
+        "center": 1.1791128579449748,
+        "sigma": 0.5057547757444997
+      },
+      "damage_per_min": {
+        "center": 402.2093023255814,
+        "sigma": 221.91242885942432
+      },
+      "damage_share": {
+        "center": 0.1130725100506794,
+        "sigma": 0.05901882583455847
+      },
+      "damage_taken_per_min": {
+        "center": 768.4118116520351,
+        "sigma": 261.54549150023934
+      },
+      "gold_per_min": {
+        "center": 308.6480047647409,
+        "sigma": 47.72472552400321
+      },
+      "gold_share": {
+        "center": 0.15036759406083322,
+        "sigma": 0.01906587413733876
+      },
+      "kda": {
+        "center": 2.4285714285714284,
+        "sigma": 1.914998764516926
+      },
+      "kill_participation": {
+        "center": 0.5106382978723404,
+        "sigma": 0.14710099474981678
+      },
+      "objective_damage_per_min": {
+        "center": 74.5298094652735,
+        "sigma": 84.82120515518879
+      },
+      "resource_efficiency": {
+        "center": 0.7468994670931276,
+        "sigma": 0.3086955862926846
+      },
+      "vision_score_per_min": {
+        "center": 2.5458715596330275,
+        "sigma": 0.7368195722258705
+      }
+    },
+    "UTILITY|IRON_BRONZE": {
+      "cs_per_min": {
+        "center": 1.3015184381778742,
+        "sigma": 0.6853644964422128
+      },
+      "damage_per_min": {
+        "center": 447.3467600700525,
+        "sigma": 243.17388726485248
+      },
+      "damage_share": {
+        "center": 0.13240184828716287,
+        "sigma": 0.06517488152915153
+      },
+      "damage_taken_per_min": {
+        "center": 729.9119627136199,
+        "sigma": 246.41000857594608
+      },
+      "gold_per_min": {
+        "center": 312.01086956521743,
+        "sigma": 53.97217882272853
+      },
+      "gold_share": {
+        "center": 0.1587356070771055,
+        "sigma": 0.021835300859564744
+      },
+      "kda": {
+        "center": 2.25,
+        "sigma": 1.9767729182110207
+      },
+      "kill_participation": {
+        "center": 0.46875,
+        "sigma": 0.15220841631209467
+      },
+      "objective_damage_per_min": {
+        "center": 82.743312464428,
+        "sigma": 94.37414310074905
+      },
+      "resource_efficiency": {
+        "center": 0.8213365240592924,
+        "sigma": 0.3260828602293305
+      },
+      "vision_score_per_min": {
+        "center": 1.8877236273904998,
+        "sigma": 0.7708896531484988
+      }
+    },
+    "UTILITY|PLATINUM": {
+      "cs_per_min": {
+        "center": 1.1481481481481481,
+        "sigma": 0.46321835669915257
+      },
+      "damage_per_min": {
+        "center": 386.8888888888889,
+        "sigma": 207.127568092259
+      },
+      "damage_share": {
+        "center": 0.10823014078717501,
+        "sigma": 0.05477596682155311
+      },
+      "damage_taken_per_min": {
+        "center": 744.7345612134345,
+        "sigma": 244.79895604676852
+      },
+      "gold_per_min": {
+        "center": 311.7586206896552,
+        "sigma": 46.80585544664156
+      },
+      "gold_share": {
+        "center": 0.15024786414935135,
+        "sigma": 0.018063523161792824
+      },
+      "kda": {
+        "center": 2.4444444444444446,
+        "sigma": 2.1062044783319798
+      },
+      "kill_participation": {
+        "center": 0.5238095238095238,
+        "sigma": 0.1411980655865015
+      },
+      "objective_damage_per_min": {
+        "center": 65.82710779082177,
+        "sigma": 81.75791173598121
+      },
+      "resource_efficiency": {
+        "center": 0.7269472427720401,
+        "sigma": 0.2901084190658773
+      },
+      "vision_score_per_min": {
+        "center": 2.5382262996941893,
+        "sigma": 0.7128028901286748
+      }
+    },
+    "UTILITY|SILVER": {
+      "cs_per_min": {
+        "center": 1.2475633528265109,
+        "sigma": 0.5609876300959077
+      },
+      "damage_per_min": {
+        "center": 441.0897927858788,
+        "sigma": 229.77462722737644
+      },
+      "damage_share": {
+        "center": 0.1254016438550709,
+        "sigma": 0.059889996321751536
+      },
+      "damage_taken_per_min": {
+        "center": 739.8309608540925,
+        "sigma": 251.27525414052343
+      },
+      "gold_per_min": {
+        "center": 312.106824925816,
+        "sigma": 50.826558876600515
+      },
+      "gold_share": {
+        "center": 0.1533525477187449,
+        "sigma": 0.02075140815771512
+      },
+      "kda": {
+        "center": 2.2857142857142856,
+        "sigma": 1.9543095895949865
+      },
+      "kill_participation": {
+        "center": 0.4838709677419355,
+        "sigma": 0.14601163600422315
+      },
+      "objective_damage_per_min": {
+        "center": 85.41545613015688,
+        "sigma": 94.99491601443107
+      },
+      "resource_efficiency": {
+        "center": 0.8025222141946996,
+        "sigma": 0.3127812228141823
+      },
+      "vision_score_per_min": {
+        "center": 2.2914218566392477,
+        "sigma": 0.7578511858704708
+      }
+    }
+  },
+  "fallback_stats": {
+    "BOTTOM": {
+      "cs_per_min": {
+        "center": 7.801539777587681,
+        "sigma": 1.3613283632507907
+      },
+      "damage_per_min": {
+        "center": 803.6013986013986,
+        "sigma": 348.5997018801604
+      },
+      "damage_share": {
+        "center": 0.23065578197378533,
+        "sigma": 0.07183433246769066
+      },
+      "damage_taken_per_min": {
+        "center": 730.258449304175,
+        "sigma": 191.4928888016652
+      },
+      "gold_per_min": {
+        "center": 478.30618892508147,
+        "sigma": 96.03350348549787
+      },
+      "gold_share": {
+        "center": 0.23093567863748996,
+        "sigma": 0.033095168138086224
+      },
+      "kda": {
+        "center": 2.3333333333333335,
+        "sigma": 2.1620953792933038
+      },
+      "kill_participation": {
+        "center": 0.48,
+        "sigma": 0.15594207091070167
+      },
+      "objective_damage_per_min": {
+        "center": 364.16666666666663,
+        "sigma": 322.1993717131422
+      },
+      "resource_efficiency": {
+        "center": 0.9940259001035585,
+        "sigma": 0.22776242097647872
+      },
+      "vision_score_per_min": {
+        "center": 0.6826347305389222,
+        "sigma": 0.28515586159093514
+      }
+    },
+    "JUNGLE": {
+      "cs_per_min": {
+        "center": 6.592920353982301,
+        "sigma": 1.2265814567036082
+      },
+      "damage_per_min": {
+        "center": 636.7289719626168,
+        "sigma": 283.64865171852523
+      },
+      "damage_share": {
+        "center": 0.18174215270989463,
+        "sigma": 0.05843935422142897
+      },
+      "damage_taken_per_min": {
+        "center": 1009.6692607003891,
+        "sigma": 259.9063858574749
+      },
+      "gold_per_min": {
+        "center": 442.52346193952036,
+        "sigma": 80.03550816119713
+      },
+      "gold_share": {
+        "center": 0.21345115572802428,
+        "sigma": 0.02844575076408287
+      },
+      "kda": {
+        "center": 2.8,
+        "sigma": 2.7386541471048513
+      },
+      "kill_participation": {
+        "center": 0.5172413793103449,
+        "sigma": 0.1473075972705328
+      },
+      "objective_damage_per_min": {
+        "center": 863.5667396061269,
+        "sigma": 613.6721839450536
+      },
+      "resource_efficiency": {
+        "center": 0.8496124608304089,
+        "sigma": 0.21045442709649534
+      },
+      "vision_score_per_min": {
+        "center": 1.0526315789473684,
+        "sigma": 0.3781989485312833
+      }
+    },
+    "MIDDLE": {
+      "cs_per_min": {
+        "center": 7.138810198300283,
+        "sigma": 1.4215565587309873
+      },
+      "damage_per_min": {
+        "center": 798.3140495867768,
+        "sigma": 301.28588985664777
+      },
+      "damage_share": {
+        "center": 0.2265006650240935,
+        "sigma": 0.06405694458936276
+      },
+      "damage_taken_per_min": {
+        "center": 841.3665943600868,
+        "sigma": 243.95011223986927
+      },
+      "gold_per_min": {
+        "center": 412.3525423728814,
+        "sigma": 73.50045386570326
+      },
+      "gold_share": {
+        "center": 0.1999352289656066,
+        "sigma": 0.028859668570729826
+      },
+      "kda": {
+        "center": 2.2222222222222223,
+        "sigma": 2.0756115641215716
+      },
+      "kill_participation": {
+        "center": 0.42857142857142855,
+        "sigma": 0.15417582896761373
+      },
+      "objective_damage_per_min": {
+        "center": 267.8126852400711,
+        "sigma": 206.06458505499612
+      },
+      "resource_efficiency": {
+        "center": 1.1373096134694303,
+        "sigma": 0.24057510582739589
+      },
+      "vision_score_per_min": {
+        "center": 0.7544672402382528,
+        "sigma": 0.29422837130595
+      }
+    },
+    "TOP": {
+      "cs_per_min": {
+        "center": 7.122618466047875,
+        "sigma": 1.4014822527321538
+      },
+      "damage_per_min": {
+        "center": 768.5678704856788,
+        "sigma": 286.112801366911
+      },
+      "damage_share": {
+        "center": 0.21907791999299464,
+        "sigma": 0.06639490627759337
+      },
+      "damage_taken_per_min": {
+        "center": 1034.1151685393259,
+        "sigma": 299.6915430296882
+      },
+      "gold_per_min": {
+        "center": 401.8736842105263,
+        "sigma": 79.31725345142723
+      },
+      "gold_share": {
+        "center": 0.19398302405331128,
+        "sigma": 0.030207810774253982
+      },
+      "kda": {
+        "center": 1.75,
+        "sigma": 1.7352921355886515
+      },
+      "kill_participation": {
+        "center": 0.34375,
+        "sigma": 0.14825796886582654
+      },
+      "objective_damage_per_min": {
+        "center": 336.04415823367066,
+        "sigma": 238.9945185913547
+      },
+      "resource_efficiency": {
+        "center": 1.1250921716871054,
+        "sigma": 0.25502701010306056
+      },
+      "vision_score_per_min": {
+        "center": 0.7692307692307693,
+        "sigma": 0.2755029737229514
+      }
+    },
+    "UTILITY": {
+      "cs_per_min": {
+        "center": 1.1252511721366376,
+        "sigma": 0.4280665336785338
+      },
+      "damage_per_min": {
+        "center": 368.50180505415165,
+        "sigma": 188.12568472704766
+      },
+      "damage_share": {
+        "center": 0.10649158801805499,
+        "sigma": 0.05163752871323461
+      },
+      "damage_taken_per_min": {
+        "center": 764.6460980036297,
+        "sigma": 240.38106526364467
+      },
+      "gold_per_min": {
+        "center": 309.6243425995492,
+        "sigma": 46.402645372806724
+      },
+      "gold_share": {
+        "center": 0.1485009164702802,
+        "sigma": 0.017723371667736024
+      },
+      "kda": {
+        "center": 2.5,
+        "sigma": 2.202689823149423
+      },
+      "kill_participation": {
+        "center": 0.5365853658536586,
+        "sigma": 0.14886064353601283
+      },
+      "objective_damage_per_min": {
+        "center": 61.865951742627345,
+        "sigma": 79.92638603810036
+      },
+      "resource_efficiency": {
+        "center": 0.7160251207728058,
+        "sigma": 0.2854347934128114
+      },
+      "vision_score_per_min": {
+        "center": 2.7083333333333335,
+        "sigma": 0.8648565725175881
+      }
+    }
+  },
+  "centroids": {
+    "TOP": [
+      [
+        -0.148179,
+        -0.17558,
+        -0.295292,
+        1.049519,
+        -0.430467
+      ],
+      [
+        -0.190797,
+        -0.225258,
+        -0.121509,
+        -0.405497,
+        0.943061
+      ],
+      [
+        0.284972,
+        0.336926,
+        0.333889,
+        -0.429304,
+        -0.526483
+      ]
+    ],
+    "JUNGLE": [
+      [
+        -0.134383,
+        -0.090834,
+        -0.379167,
+        0.968015,
+        -0.363631
+      ],
+      [
+        -0.281036,
+        -0.171161,
+        -0.115155,
+        -0.384902,
+        0.952254
+      ],
+      [
+        0.390855,
+        0.246347,
+        0.459481,
+        -0.528688,
+        -0.567995
+      ]
+    ],
+    "MIDDLE": [
+      [
+        -0.246466,
+        -0.106464,
+        -0.203678,
+        0.999128,
+        -0.442519
+      ],
+      [
+        -0.14326,
+        -0.250185,
+        -0.190728,
+        -0.392241,
+        0.976414
+      ],
+      [
+        0.325354,
+        0.305781,
+        0.33235,
+        -0.465095,
+        -0.498391
+      ]
+    ],
+    "BOTTOM": [
+      [
+        -0.199056,
+        -0.014406,
+        -0.224499,
+        0.884816,
+        -0.446854
+      ],
+      [
+        0.411798,
+        0.202046,
+        0.319202,
+        -0.46727,
+        -0.465775
+      ],
+      [
+        -0.274275,
+        -0.218673,
+        -0.14169,
+        -0.354391,
+        0.98903
+      ]
+    ],
+    "UTILITY": [
+      [
+        -0.549034,
+        0.032132,
+        -0.27637,
+        0.741572,
+        0.0517
+      ],
+      [
+        0.332814,
+        -0.357881,
+        -0.220211,
+        -0.347586,
+        0.592865
+      ],
+      [
+        0.224392,
+        0.43725,
+        0.629,
+        -0.438757,
+        -0.851885
+      ]
+    ]
+  },
+  "labels": {
+    "TOP": {
+      "0": {
+        "name": "앞라인 탱커형",
+        "desc": "받은 피해가 크게 높고 자원·딜 비중은 낮은 앞라인형"
+      },
+      "1": {
+        "name": "시야 운영형",
+        "desc": "시야 기여가 높고 자원·딜 비중은 낮은 운영형"
+      },
+      "2": {
+        "name": "딜 캐리형",
+        "desc": "딜·자원 비중과 교전 관여도가 높은 캐리형"
+      }
+    },
+    "JUNGLE": {
+      "0": {
+        "name": "탱커 정글러형",
+        "desc": "받은 피해가 크게 높고 자원·딜 비중은 낮은 탱커형"
+      },
+      "1": {
+        "name": "시야 운영형",
+        "desc": "시야 기여가 높고 자원·딜 비중은 낮은 운영형"
+      },
+      "2": {
+        "name": "캐리 정글러형",
+        "desc": "딜·자원 비중과 교전 관여도가 높은 캐리형"
+      }
+    },
+    "MIDDLE": {
+      "0": {
+        "name": "전방 압박형",
+        "desc": "받은 피해가 크게 높고 자원·딜 비중은 낮은 압박형"
+      },
+      "1": {
+        "name": "시야 운영형",
+        "desc": "시야 기여가 높고 자원·딜 비중은 낮은 운영형"
+      },
+      "2": {
+        "name": "딜 캐리형",
+        "desc": "딜·자원 비중과 교전 관여도가 높은 캐리형"
+      }
+    },
+    "BOTTOM": {
+      "0": {
+        "name": "전방 압박형",
+        "desc": "받은 피해가 높고 자원·딜 비중은 낮은 전방 압박형"
+      },
+      "1": {
+        "name": "딜 캐리형",
+        "desc": "딜·자원 비중과 교전 관여도가 높은 캐리형"
+      },
+      "2": {
+        "name": "시야 운영형",
+        "desc": "시야 기여가 높고 자원·딜 비중은 낮은 운영형"
+      }
+    },
+    "UTILITY": {
+      "0": {
+        "name": "이니시에이팅형",
+        "desc": "받은 피해가 높고 딜·자원 비중은 낮은 선제 진입형"
+      },
+      "1": {
+        "name": "교전·시야 기여형",
+        "desc": "교전 합류와 시야 기여가 높고 딜·자원 비중은 낮은 서포터"
+      },
+      "2": {
+        "name": "딜 서포터형",
+        "desc": "딜·자원 비중이 높지만 시야 기여는 낮은 서포터"
+      }
+    }
+  },
+  "style_baseline": {
+    "TOP": {
+      "0": {
+        "median": {
+          "objective_damage_per_min": -0.027812412359763117,
+          "cs_per_min": -0.233089856750323,
+          "gold_per_min": -0.03275172418794274,
+          "damage_per_min": 0.2909854326128337,
+          "kda": -0.0642380952380953,
+          "resource_efficiency": 0.026345757961234378
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.8728825739758701,
+          "cs_per_min": 0.9692516102167407,
+          "gold_per_min": 1.0068168145022662,
+          "damage_per_min": 1.0271137626016043,
+          "kda": 0.8814935064935066,
+          "resource_efficiency": 0.9546607215234878
+        }
+      },
+      "1": {
+        "median": {
+          "objective_damage_per_min": -0.04174431942219459,
+          "cs_per_min": 0.21700577247405015,
+          "gold_per_min": 0.02367209680930232,
+          "damage_per_min": -0.08029648663715086,
+          "kda": 0.04802265372168281,
+          "resource_efficiency": -0.16721951525408177
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.8218155631516724,
+          "cs_per_min": 0.9497566652973475,
+          "gold_per_min": 0.8967258612535831,
+          "damage_per_min": 0.9169262683571466,
+          "kda": 1.0376950352279297,
+          "resource_efficiency": 0.9747680979904779
+        }
+      },
+      "2": {
+        "median": {
+          "objective_damage_per_min": -0.3042174966467691,
+          "cs_per_min": -0.02505414313565956,
+          "gold_per_min": 0.014437952195462948,
+          "damage_per_min": -0.13270247083618672,
+          "kda": 0.00875974025974025,
+          "resource_efficiency": 0.1665502033317024
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.7662091141214767,
+          "cs_per_min": 1.0394520365440854,
+          "gold_per_min": 1.1083751713076015,
+          "damage_per_min": 0.987936488182802,
+          "kda": 1.1260934699820786,
+          "resource_efficiency": 1.0459750395573377
+        }
+      }
+    },
+    "JUNGLE": {
+      "0": {
+        "median": {
+          "objective_damage_per_min": 0.05050323171721477,
+          "cs_per_min": -0.22076191648983226,
+          "gold_per_min": -0.10565954271034055,
+          "damage_per_min": 0.22759150797710226,
+          "kda": -0.059514705882352914,
+          "resource_efficiency": 0.11513975978832067
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.6671177570940799,
+          "cs_per_min": 0.9446885095919941,
+          "gold_per_min": 0.9209487347237749,
+          "damage_per_min": 0.9321421467610067,
+          "kda": 0.7522950300728077,
+          "resource_efficiency": 0.9298252721537655
+        }
+      },
+      "1": {
+        "median": {
+          "objective_damage_per_min": 0.10500287222653787,
+          "cs_per_min": 0.22979125553654464,
+          "gold_per_min": -0.03013128474856029,
+          "damage_per_min": -0.13042263201539658,
+          "kda": 0.07782692307692309,
+          "resource_efficiency": -0.18480170988057656
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.7089898177489767,
+          "cs_per_min": 0.9984397644842908,
+          "gold_per_min": 0.9442828584920342,
+          "damage_per_min": 0.9243671347534838,
+          "kda": 1.1398993808049536,
+          "resource_efficiency": 0.9877044834342282
+        }
+      },
+      "2": {
+        "median": {
+          "objective_damage_per_min": -0.27873042878852267,
+          "cs_per_min": 0.0,
+          "gold_per_min": 0.15171210771819713,
+          "damage_per_min": -0.11456257730514667,
+          "kda": 0.014988888888888836,
+          "resource_efficiency": 0.06107339037502941
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.6640339610020078,
+          "cs_per_min": 1.0027481828264744,
+          "gold_per_min": 1.118858781839217,
+          "damage_per_min": 1.1064544981450042,
+          "kda": 1.1153846153846154,
+          "resource_efficiency": 1.0794285992772275
+        }
+      }
+    },
+    "MIDDLE": {
+      "0": {
+        "median": {
+          "objective_damage_per_min": -0.04796192596136928,
+          "cs_per_min": -0.15945992914246412,
+          "gold_per_min": 0.009337773932084969,
+          "damage_per_min": 0.2073703840040694,
+          "kda": -0.16719999999999996,
+          "resource_efficiency": 0.030708204234664617
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.9135627255338337,
+          "cs_per_min": 1.0510389184193158,
+          "gold_per_min": 1.1041412770292893,
+          "damage_per_min": 1.0407122925731833,
+          "kda": 0.7441809398331136,
+          "resource_efficiency": 0.9736968034838124
+        }
+      },
+      "1": {
+        "median": {
+          "objective_damage_per_min": -0.056124868721828036,
+          "cs_per_min": 0.10940384813906678,
+          "gold_per_min": -0.055530241759162796,
+          "damage_per_min": -0.08141305723496368,
+          "kda": 0.12263636363636363,
+          "resource_efficiency": -0.17984368375173568
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.8193652519330688,
+          "cs_per_min": 0.9691829473257322,
+          "gold_per_min": 0.8776424273665185,
+          "damage_per_min": 0.9003953425088318,
+          "kda": 1.0880105401844533,
+          "resource_efficiency": 0.9536292338826493
+        }
+      },
+      "2": {
+        "median": {
+          "objective_damage_per_min": -0.3325085557619436,
+          "cs_per_min": 0.005938153854732261,
+          "gold_per_min": 0.05594565616242635,
+          "damage_per_min": -0.0786977108841996,
+          "kda": 0.0788376623376623,
+          "resource_efficiency": 0.13294329537058125
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.7273684841821051,
+          "cs_per_min": 0.9926761628840514,
+          "gold_per_min": 1.0232985350441126,
+          "damage_per_min": 1.0467898491205894,
+          "kda": 1.0808747412008282,
+          "resource_efficiency": 1.0312602158500013
+        }
+      }
+    },
+    "BOTTOM": {
+      "0": {
+        "median": {
+          "objective_damage_per_min": -0.0653190878335782,
+          "cs_per_min": -0.2795328847706699,
+          "gold_per_min": -0.010074811586482194,
+          "damage_per_min": 0.27748941673030997,
+          "kda": -0.19044705882352933,
+          "resource_efficiency": 0.13777280527884903
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.7034942294546567,
+          "cs_per_min": 0.9674098509237316,
+          "gold_per_min": 1.0149399385626765,
+          "damage_per_min": 1.0786650578110655,
+          "kda": 0.7155603655603654,
+          "resource_efficiency": 1.0248880244573888
+        }
+      },
+      "1": {
+        "median": {
+          "objective_damage_per_min": -0.2588157245938682,
+          "cs_per_min": 0.012778450122716698,
+          "gold_per_min": 0.02614957546890556,
+          "damage_per_min": -0.15649212509322044,
+          "kda": 0.16505411764705882,
+          "resource_efficiency": 0.026518628593386225
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.6329147360224994,
+          "cs_per_min": 0.9756042564931201,
+          "gold_per_min": 1.0160411890544787,
+          "damage_per_min": 0.9238748208815672,
+          "kda": 1.176470588235294,
+          "resource_efficiency": 0.9910147042489367
+        }
+      },
+      "2": {
+        "median": {
+          "objective_damage_per_min": -0.031883021095422126,
+          "cs_per_min": 0.2653081604199961,
+          "gold_per_min": -0.01706801533932481,
+          "damage_per_min": -0.09672940325343352,
+          "kda": 0.08728823529411772,
+          "resource_efficiency": -0.15483927620015725
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.7515992819369585,
+          "cs_per_min": 0.9596843984046775,
+          "gold_per_min": 0.9568257825583307,
+          "damage_per_min": 0.9319350342504855,
+          "kda": 1.1032884113241255,
+          "resource_efficiency": 0.9851024462710816
+        }
+      }
+    },
+    "UTILITY": {
+      "0": {
+        "median": {
+          "objective_damage_per_min": -0.2060830496678998,
+          "cs_per_min": 0.018453174182854977,
+          "gold_per_min": -0.11056873333549468,
+          "damage_per_min": 0.22267738201266069,
+          "kda": -0.2767179487179487,
+          "resource_efficiency": 0.14722951852516125
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.8591412730055261,
+          "cs_per_min": 1.0566142871235857,
+          "gold_per_min": 0.9778402289236459,
+          "damage_per_min": 1.105079544990102,
+          "kda": 0.5913696991571911,
+          "resource_efficiency": 1.0017691287928925
+        }
+      },
+      "1": {
+        "median": {
+          "objective_damage_per_min": -0.11141541597760862,
+          "cs_per_min": 0.010560815293875115,
+          "gold_per_min": 0.02968428898070406,
+          "damage_per_min": -0.10941047366187415,
+          "kda": 0.447594470046083,
+          "resource_efficiency": -0.25404649867647416
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.8560769843689082,
+          "cs_per_min": 0.8701654454166239,
+          "gold_per_min": 0.8924220618779651,
+          "damage_per_min": 0.8959407259969635,
+          "kda": 1.2841985600606287,
+          "resource_efficiency": 0.8448764268584421
+        }
+      },
+      "2": {
+        "median": {
+          "objective_damage_per_min": -0.4556182773694391,
+          "cs_per_min": -0.021128209212032685,
+          "gold_per_min": 0.10722227907788429,
+          "damage_per_min": -0.04134547604738821,
+          "kda": -0.06091543513957307,
+          "resource_efficiency": 0.26950728689585635
+        },
+        "sigma": {
+          "objective_damage_per_min": 0.6167816904295018,
+          "cs_per_min": 1.1358771832163248,
+          "gold_per_min": 1.191257995388794,
+          "damage_per_min": 0.9953751398718009,
+          "kda": 1.1677024125299988,
+          "resource_efficiency": 1.0730015693120858
+        }
+      }
+    }
+  },
+  "feature_labels": {
+    "kda": "KDA",
+    "kill_participation": "전투 관여도",
+    "cs_per_min": "CS 수급",
+    "gold_per_min": "골드 수급",
+    "damage_per_min": "챔피언 피해량",
+    "damage_taken_per_min": "피해 감수",
+    "vision_score_per_min": "시야 기여도",
+    "objective_damage_per_min": "오브젝트 기여도",
+    "damage_share": "팀 내 딜 기여도",
+    "gold_share": "팀 내 골드 비중",
+    "resource_efficiency": "자원 대비 딜 효율",
+    "vision_wards_bought_in_game": "제어 와드 활용"
+  },
+  "explain": {
+    "ambiguous_cut": 0.15,
+    "style_features": [
+      "kill_participation",
+      "damage_share",
+      "gold_share",
+      "damage_taken_per_min",
+      "vision_score_per_min"
+    ],
+    "positions": {
+      "TOP": {
+        "k": 3,
+        "temperature": 1.0975,
+        "separation": 1.8199,
+        "dist_p50": 1.0975,
+        "dist_p90": 1.8023,
+        "margin_p25": 0.1627,
+        "margin_p50": 0.3667,
+        "train_ambiguous_rate": 0.2302,
+        "skill_leak_eta2": 0.0055,
+        "clusters": {
+          "0": {
+            "share": 0.285,
+            "win_rate": 0.498,
+            "mean_dist": 1.183,
+            "dist_p90": 1.811,
+            "mean_margin": 0.413,
+            "ambiguous_rate": 0.224,
+            "dominant_axis": "damage_taken_per_min",
+            "axis_summary": "damage_taken_per_min +1.05 / vision_score_per_min -0.43 / gold_share -0.30"
+          },
+          "1": {
+            "share": 0.34,
+            "win_rate": 0.507,
+            "mean_dist": 1.164,
+            "dist_p90": 1.783,
+            "mean_margin": 0.412,
+            "ambiguous_rate": 0.218,
+            "dominant_axis": "vision_score_per_min",
+            "axis_summary": "vision_score_per_min +0.94 / damage_taken_per_min -0.41 / damage_share -0.23"
+          },
+          "2": {
+            "share": 0.375,
+            "win_rate": 0.494,
+            "mean_dist": 1.184,
+            "dist_p90": 1.818,
+            "mean_margin": 0.352,
+            "ambiguous_rate": 0.246,
+            "dominant_axis": "vision_score_per_min",
+            "axis_summary": "vision_score_per_min -0.53 / damage_taken_per_min -0.43 / damage_share +0.34"
+          }
+        }
+      },
+      "JUNGLE": {
+        "k": 3,
+        "temperature": 1.106,
+        "separation": 1.8544,
+        "dist_p50": 1.106,
+        "dist_p90": 1.7794,
+        "margin_p25": 0.1701,
+        "margin_p50": 0.3719,
+        "train_ambiguous_rate": 0.2195,
+        "skill_leak_eta2": 0.0131,
+        "clusters": {
+          "0": {
+            "share": 0.321,
+            "win_rate": 0.506,
+            "mean_dist": 1.174,
+            "dist_p90": 1.772,
+            "mean_margin": 0.401,
+            "ambiguous_rate": 0.229,
+            "dominant_axis": "damage_taken_per_min",
+            "axis_summary": "damage_taken_per_min +0.97 / gold_share -0.38 / vision_score_per_min -0.36"
+          },
+          "1": {
+            "share": 0.331,
+            "win_rate": 0.511,
+            "mean_dist": 1.167,
+            "dist_p90": 1.756,
+            "mean_margin": 0.407,
+            "ambiguous_rate": 0.214,
+            "dominant_axis": "vision_score_per_min",
+            "axis_summary": "vision_score_per_min +0.95 / damage_taken_per_min -0.38 / kill_participation -0.28"
+          },
+          "2": {
+            "share": 0.348,
+            "win_rate": 0.482,
+            "mean_dist": 1.189,
+            "dist_p90": 1.814,
+            "mean_margin": 0.387,
+            "ambiguous_rate": 0.216,
+            "dominant_axis": "vision_score_per_min",
+            "axis_summary": "vision_score_per_min -0.57 / damage_taken_per_min -0.53 / gold_share +0.46"
+          }
+        }
+      },
+      "MIDDLE": {
+        "k": 3,
+        "temperature": 1.0983,
+        "separation": 1.8114,
+        "dist_p50": 1.0983,
+        "dist_p90": 1.7786,
+        "margin_p25": 0.1736,
+        "margin_p50": 0.3662,
+        "train_ambiguous_rate": 0.2171,
+        "skill_leak_eta2": 0.0049,
+        "clusters": {
+          "0": {
+            "share": 0.301,
+            "win_rate": 0.498,
+            "mean_dist": 1.179,
+            "dist_p90": 1.802,
+            "mean_margin": 0.405,
+            "ambiguous_rate": 0.222,
+            "dominant_axis": "damage_taken_per_min",
+            "axis_summary": "damage_taken_per_min +1.00 / vision_score_per_min -0.44 / kill_participation -0.25"
+          },
+          "1": {
+            "share": 0.327,
+            "win_rate": 0.503,
+            "mean_dist": 1.146,
+            "dist_p90": 1.744,
+            "mean_margin": 0.426,
+            "ambiguous_rate": 0.19,
+            "dominant_axis": "vision_score_per_min",
+            "axis_summary": "vision_score_per_min +0.98 / damage_taken_per_min -0.39 / damage_share -0.25"
+          },
+          "2": {
+            "share": 0.372,
+            "win_rate": 0.498,
+            "mean_dist": 1.175,
+            "dist_p90": 1.782,
+            "mean_margin": 0.349,
+            "ambiguous_rate": 0.237,
+            "dominant_axis": "vision_score_per_min",
+            "axis_summary": "vision_score_per_min -0.50 / damage_taken_per_min -0.47 / gold_share +0.33"
+          }
+        }
+      },
+      "BOTTOM": {
+        "k": 3,
+        "temperature": 1.0214,
+        "separation": 1.745,
+        "dist_p50": 1.0214,
+        "dist_p90": 1.648,
+        "margin_p25": 0.1739,
+        "margin_p50": 0.3719,
+        "train_ambiguous_rate": 0.2146,
+        "skill_leak_eta2": 0.015,
+        "clusters": {
+          "0": {
+            "share": 0.319,
+            "win_rate": 0.5,
+            "mean_dist": 1.06,
+            "dist_p90": 1.611,
+            "mean_margin": 0.4,
+            "ambiguous_rate": 0.217,
+            "dominant_axis": "damage_taken_per_min",
+            "axis_summary": "damage_taken_per_min +0.88 / vision_score_per_min -0.45 / gold_share -0.22"
+          },
+          "1": {
+            "share": 0.365,
+            "win_rate": 0.489,
+            "mean_dist": 1.075,
+            "dist_p90": 1.622,
+            "mean_margin": 0.357,
+            "ambiguous_rate": 0.238,
+            "dominant_axis": "damage_taken_per_min",
+            "axis_summary": "damage_taken_per_min -0.47 / vision_score_per_min -0.47 / kill_participation +0.41"
+          },
+          "2": {
+            "share": 0.316,
+            "win_rate": 0.512,
+            "mean_dist": 1.12,
+            "dist_p90": 1.707,
+            "mean_margin": 0.434,
+            "ambiguous_rate": 0.186,
+            "dominant_axis": "vision_score_per_min",
+            "axis_summary": "vision_score_per_min +0.99 / damage_taken_per_min -0.35 / kill_participation -0.27"
+          }
+        }
+      },
+      "UTILITY": {
+        "k": 3,
+        "temperature": 1.1538,
+        "separation": 1.7869,
+        "dist_p50": 1.1538,
+        "dist_p90": 1.9062,
+        "margin_p25": 0.1562,
+        "margin_p50": 0.3328,
+        "train_ambiguous_rate": 0.2421,
+        "skill_leak_eta2": 0.0223,
+        "clusters": {
+          "0": {
+            "share": 0.343,
+            "win_rate": 0.511,
+            "mean_dist": 1.226,
+            "dist_p90": 1.913,
+            "mean_margin": 0.344,
+            "ambiguous_rate": 0.257,
+            "dominant_axis": "damage_taken_per_min",
+            "axis_summary": "damage_taken_per_min +0.74 / kill_participation -0.55 / gold_share -0.28"
+          },
+          "1": {
+            "share": 0.375,
+            "win_rate": 0.511,
+            "mean_dist": 1.147,
+            "dist_p90": 1.741,
+            "mean_margin": 0.348,
+            "ambiguous_rate": 0.243,
+            "dominant_axis": "vision_score_per_min",
+            "axis_summary": "vision_score_per_min +0.59 / damage_share -0.36 / damage_taken_per_min -0.35"
+          },
+          "2": {
+            "share": 0.282,
+            "win_rate": 0.471,
+            "mean_dist": 1.349,
+            "dist_p90": 2.101,
+            "mean_margin": 0.411,
+            "ambiguous_rate": 0.223,
+            "dominant_axis": "vision_score_per_min",
+            "axis_summary": "vision_score_per_min -0.85 / gold_share +0.63 / damage_taken_per_min -0.44"
+          }
+        }
+      }
+    },
+    "method_note": "포지션·티어별 중앙값과 IQR로 각 지표를 로버스트 Z로 바꾸고, 경기마다 6개 스타일 축의 평균을 빼(프로파일 센터링) 전반적 실력 수준을 제거한 뒤, 포지션별 K-Means 중심점 중 가장 가까운 것을 그 경기의 스타일로 본다. 대표 스타일은 경기별 소속 확률을 합산해 정한다."
+  },
+  "residual": {
+    "controls": [
+      "win",
+      "perf_level"
+    ],
+    "perf_features": [
+      "objective_damage_per_min",
+      "cs_per_min",
+      "gold_per_min",
+      "damage_per_min",
+      "kda",
+      "resource_efficiency"
+    ],
+    "positions": {
+      "TOP": {
+        "beta": [
+          [
+            -0.10722,
+            0.147887,
+            0.093927,
+            0.074667,
+            -0.209261
+          ],
+          [
+            0.105113,
+            -0.401425,
+            -0.310863,
+            0.030046,
+            0.577128
+          ],
+          [
+            0.060127,
+            0.480888,
+            0.51549,
+            -0.4867,
+            -0.569805
+          ]
+        ]
+      },
+      "JUNGLE": {
+        "beta": [
+          [
+            -0.054202,
+            0.203556,
+            0.156296,
+            -0.006397,
+            -0.299253
+          ],
+          [
+            -0.05431,
+            -0.496484,
+            -0.372382,
+            0.201371,
+            0.721804
+          ],
+          [
+            0.035658,
+            0.606484,
+            0.439946,
+            -0.517026,
+            -0.565062
+          ]
+        ]
+      },
+      "MIDDLE": {
+        "beta": [
+          [
+            -0.115715,
+            0.128071,
+            0.135142,
+            0.070135,
+            -0.217632
+          ],
+          [
+            0.064358,
+            -0.363561,
+            -0.39922,
+            0.093604,
+            0.604818
+          ],
+          [
+            0.136964,
+            0.559129,
+            0.51903,
+            -0.679402,
+            -0.535719
+          ]
+        ]
+      },
+      "BOTTOM": {
+        "beta": [
+          [
+            -0.109175,
+            0.08074,
+            0.08302,
+            0.100838,
+            -0.155423
+          ],
+          [
+            -0.002452,
+            -0.244928,
+            -0.24098,
+            -0.080359,
+            0.568718
+          ],
+          [
+            0.152526,
+            0.461899,
+            0.428291,
+            -0.515758,
+            -0.526958
+          ]
+        ]
+      },
+      "UTILITY": {
+        "beta": [
+          [
+            -0.230284,
+            0.212471,
+            0.209139,
+            0.143707,
+            -0.335033
+          ],
+          [
+            0.370192,
+            -0.444578,
+            -0.492193,
+            -0.116856,
+            0.683435
+          ],
+          [
+            -0.223349,
+            0.682612,
+            0.583717,
+            -0.487897,
+            -0.555084
+          ]
+        ]
+      }
+    }
+  },
+  "perf_residual": {
+    "controls": [
+      "win"
+    ],
+    "features": [
+      "objective_damage_per_min"
+    ],
+    "detect_cut": 0.4,
+    "positions": {
+      "TOP": {
+        "beta": [
+          [
+            -0.326149
+          ],
+          [
+            1.00959
+          ]
+        ]
+      },
+      "JUNGLE": {
+        "beta": [
+          [
+            -0.498717
+          ],
+          [
+            1.142075
+          ]
+        ]
+      },
+      "MIDDLE": {
+        "beta": [
+          [
+            -0.297107
+          ],
+          [
+            0.985278
+          ]
+        ]
+      },
+      "BOTTOM": {
+        "beta": [
+          [
+            -0.365507
+          ],
+          [
+            1.145573
+          ]
+        ]
+      },
+      "UTILITY": {
+        "beta": [
+          [
+            -0.140262
+          ],
+          [
+            0.88709
+          ]
+        ]
+      }
+    },
+    "apply_order": "clip_then_residual"
+  }
+}

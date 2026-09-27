@@ -1,26 +1,16 @@
+# Environment
 .env
-.env.*
-!.env.example
+*.env
+
+# Python virtual environments
 .venv/
-venv/
+.venv314/
+.venv-broken-backup/
+
+# uv
+.uv-cache/
+.uv-python/
+
+# Python cache
 __pycache__/
-.pytest_cache/
-.ruff_cache/
-*.pyc
-*.pyo
-*.pyd
-data/*.xlsx
-data/*.xls
-data/*.csv
-data/*.json
-data/raw_*/
-raw_data/
-logs/
-*.log
-.coverage
-htmlcov/
-dist/
-build/
-*.egg-info/
-.DS_Store
-Thumbs.db
+*.py[cod]

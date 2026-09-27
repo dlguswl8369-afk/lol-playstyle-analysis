@@ -1,0 +1,8 @@
+# Direct runtime dependency imported by the bundled source.
+httpx>=0.27,<1
+
+# Integration dependency used to construct the Microsoft Entra TokenCredential.
+# Omit this line if the existing server already supplies a compatible credential.
+azure-identity>=1.17,<2
+
+# FastAPI and Pydantic are intentionally not listed; the host server owns them.
