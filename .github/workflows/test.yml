@@ -31,7 +31,6 @@ jobs:
 
       - name: Ruff
         run: python -m ruff check .
-        continue-on-error: true
 
       - name: Pytest
-        run: python -m pytestgit add .github/workflows/
+        run: python -m pytest
