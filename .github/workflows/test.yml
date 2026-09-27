@@ -10,15 +10,30 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-      - run: python -m pip install -r requirements.txt
-      - run: python -m ruff check .
-      - run: python -m pytest
+          cache-dependency-path: lol-coach-Backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r lol-coach-Backend/requirements.txt
+          python -m pip install ruff pytest
+
+      - name: Check code with Ruff
+        run: python -m ruff check .
+
+      - name: Run tests
+        run: python -m pytest
