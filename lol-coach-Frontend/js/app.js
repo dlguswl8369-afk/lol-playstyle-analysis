@@ -636,7 +636,7 @@ function renderMetrics(summaryMetrics, priorityCandidates = null) {
     $("#metricsMode").textContent = hasBenchmark ? "Databricks 벤치마크 대비" : "최근 경기 실측 평균";
     $("#metricsNote").textContent = hasBenchmark
         ? "점선은 Databricks가 선택한 동일 조건 벤치마크입니다."
-        : "Riot 경기 데이터의 단순 평균이며 평가 문구를 생성하지 않습니다.";
+        : "경기 데이터의 단순 평균이며 평가 문구를 생성하지 않습니다.";
 
     $("#metrics").innerHTML = rows.map(({ key, mine, benchmark }) => {
         const config = METRIC_PRESENTATION[key];
@@ -668,7 +668,7 @@ function renderPlayStyleReport(playstyleAnalysis, priorityCandidates = [], targe
     const style = playstyleAnalysis?.play_style;
 
     if (!style) {
-        container.innerHTML = `<p class="empty">Databricks 코칭 리포트 생성 후 플레이스타일이 표시됩니다.</p>`;
+        container.innerHTML = `<p class="empty">코칭 리포트 생성 후 플레이스타일이 표시됩니다.</p>`;
         return;
     }
 
@@ -857,7 +857,7 @@ function renderPlayStyleReport(playstyleAnalysis, priorityCandidates = [], targe
 /* --- NEXT GAME: validated Databricks coaching only --- */
 function renderTips(coaching) {
     if (!coaching) {
-        $("#tips").innerHTML = `<li><div><strong>리포트 대기 중</strong><p>Databricks 분석이 완료되면 검증된 개선점이 표시됩니다.</p></div></li>`;
+        $("#tips").innerHTML = `<li><div><strong>리포트 대기 중</strong><p>분석이 완료되면 검증된 개선점이 표시됩니다.</p></div></li>`;
         return;
     }
 
@@ -1056,7 +1056,10 @@ function renderLookupRecent() {
                <p class="lookup-label">최근 검색</p>
                <div>${list.map((id) => `<button type="button" class="chip">${escapeHtml(id)}</button>`).join("")}</div>
            </div>`
-        : `<p class="empty">소환사 이름과 태그를 입력하면 최근 10경기를 분석합니다.</p>`;
+        : `<div class="empty empty-guidance">
+               <strong>최근 경기 분석을 시작해 보세요</strong>
+               <span>소환사 이름과 태그를 입력하면 최근 10경기를 분석합니다.</span>
+           </div>`;
 }
 
 $("#searchResult").addEventListener("click", (event) => {

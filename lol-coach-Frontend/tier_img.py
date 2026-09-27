@@ -1,8 +1,9 @@
-import os
 import io
-import zipfile
-import requests
+import os
 import shutil
+import zipfile
+
+import requests
 
 SAVE_DIR = "assets/image/tier_images"
 os.makedirs(SAVE_DIR, exist_ok=True)
@@ -30,7 +31,6 @@ response = requests.get(ZIP_URL)
 response.raise_for_status()
 
 with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
-
     for tier in TIERS:
         # ZIP 내부에서 해당 티어 이미지 찾기
         matches = [

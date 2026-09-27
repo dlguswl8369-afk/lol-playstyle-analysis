@@ -1,6 +1,5 @@
 # Databricks notebook source
 import sys
-import json
 
 # ============================================
 # 1. 프로젝트 경로 등록
@@ -19,11 +18,9 @@ if PROJECT_ROOT not in sys.path:
 from databricks.serving.inference_adapters import DatabricksDeltaAdapter
 from databricks.serving.unified_inference_notebook import notebook_main
 
-
 # ============================================
 # 3. Azure OpenAI Client
 # ============================================
-
 from openai import OpenAI
 
 
@@ -79,10 +76,7 @@ AZURE_OPENAI_DEPLOYMENT = "gpt-5-mini-rag"
 
 # 테스트 단계에서는 아래 부분에 키 입력
 # Job 정상 동작 확인 후 Secret Scope로 변경
-AZURE_OPENAI_API_KEY = dbutils.secrets.get(
-    scope="lol-ai-secrets",
-    key="azure-openai-api-key"
-)
+AZURE_OPENAI_API_KEY = dbutils.secrets.get(scope="lol-ai-secrets", key="azure-openai-api-key")
 
 llm_client = AzureOpenAILLMClient(
     endpoint=AZURE_OPENAI_ENDPOINT,

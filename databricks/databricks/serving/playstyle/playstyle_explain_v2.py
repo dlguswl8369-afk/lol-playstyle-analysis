@@ -34,8 +34,7 @@ from typing import Any
 
 import numpy as np
 
-
-AMBIGUOUS_CUT = 0.15          # margin_norm 이 이보다 작으면 '경계 경기'
+AMBIGUOUS_CUT = 0.15  # margin_norm 이 이보다 작으면 '경계 경기'
 HIGH_CONFIDENCE = 0.65
 MEDIUM_CONFIDENCE = 0.45
 
@@ -44,21 +43,43 @@ MATCH_WEAK = "약함"
 MATCH_OFF = "불일치"
 
 BASE_PAYLOAD_KEYS = {
-    "status", "games_analyzed", "main_position", "main_position_games",
-    "position_mix", "position_focus_ratio", "tier_buckets", "win_rate",
-    "coaching_mode", "play_style", "strengths", "improvements", "primary_goal",
-    "has_strengths", "has_improvements", "recent_trend",
+    "status",
+    "games_analyzed",
+    "main_position",
+    "main_position_games",
+    "position_mix",
+    "position_focus_ratio",
+    "tier_buckets",
+    "win_rate",
+    "coaching_mode",
+    "play_style",
+    "strengths",
+    "improvements",
+    "primary_goal",
+    "has_strengths",
+    "has_improvements",
+    "recent_trend",
 }
 EXPLAIN_PAYLOAD_KEYS = {
-    "style_confidence", "style_evidence", "style_explanation_ko",
-    "per_game_style", "method_note",
+    "style_confidence",
+    "style_evidence",
+    "style_explanation_ko",
+    "per_game_style",
+    "method_note",
 }
 
 
 def _empty_confidence(reason: str) -> dict[str, Any]:
     """판정 자체가 불가능할 때의 기본 신뢰도. 키 구성은 정상 경로와 동일하게 유지한다."""
-    return {"level": "low", "score": 0.0, "top_share": 0.0, "mean_margin": 0.0,
-            "ambiguous_rate": 1.0, "typical_rate": 0.0, "reasons": [reason]}
+    return {
+        "level": "low",
+        "score": 0.0,
+        "top_share": 0.0,
+        "mean_margin": 0.0,
+        "ambiguous_rate": 1.0,
+        "typical_rate": 0.0,
+        "reasons": [reason],
+    }
 
 
 def _is_win(value: Any) -> bool:
@@ -69,7 +90,7 @@ def _is_win(value: Any) -> bool:
 
 def _softmax_from_distance(distances, temperature: float) -> np.ndarray:
     temp = max(float(temperature), 1e-6)
-    logits = -(np.asarray(distances, dtype=float) ** 2) / (2 * temp ** 2)
+    logits = -(np.asarray(distances, dtype=float) ** 2) / (2 * temp**2)
     logits = logits - logits.max()
     weights = np.exp(logits)
     return weights / weights.sum()
@@ -95,13 +116,22 @@ class StyleExplainMixin:
             return meta
         centers = self.centroids.get(position)
         if centers is None or len(centers) < 2:
-            return {"temperature": 1.0, "separation": 1.0, "dist_p90": None,
-                    "margin_p50": None, "clusters": {}}
+            return {
+                "temperature": 1.0,
+                "separation": 1.0,
+                "dist_p90": None,
+                "margin_p50": None,
+                "clusters": {},
+            }
         pair = np.linalg.norm(centers[:, None, :] - centers[None, :, :], axis=2)
         separation = float(pair[np.triu_indices(len(centers), 1)].mean())
-        return {"temperature": round(separation / 2, 4),
-                "separation": round(separation, 4),
-                "dist_p90": None, "margin_p50": None, "clusters": {}}
+        return {
+            "temperature": round(separation / 2, 4),
+            "separation": round(separation, 4),
+            "dist_p90": None,
+            "margin_p50": None,
+            "clusters": {},
+        }
 
     def _label(self, position: str, cluster: int) -> dict[str, Any]:
         return self.artifact["labels"][position][str(int(cluster))]
@@ -110,8 +140,12 @@ class StyleExplainMixin:
         return self.artifact["feature_labels"].get(feature, feature)
 
     # ---------- 경기 단위 설명 ----------
-    def style_vector(self, z_scores: dict[str, float], game: dict[str, Any] | None = None,
-                     position: str | None = None) -> np.ndarray:
+    def style_vector(
+        self,
+        z_scores: dict[str, float],
+        game: dict[str, Any] | None = None,
+        position: str | None = None,
+    ) -> np.ndarray:
         """학습과 동일한 변환: 프로파일 센터링 (+ 학습 때 잔차화를 했다면 같은 잔차화)."""
         # 계산 본체는 PlayStyleAnalyzer.style_vector 하나로 모은다.
         # 같은 식을 두 군데 두면 한쪽만 고쳐져 학습과 조용히 어긋난다.
@@ -125,9 +159,7 @@ class StyleExplainMixin:
         # 여기서도 원본(z_raw)이 있으면 그걸 써야 통제 변수가 학습과 같아진다.
         base = (game or {}).get("z_raw") or z_scores
 
-        vector = np.asarray(
-            [base.get(f, 0.0) for f in self.style_features], dtype=float
-        )
+        vector = np.asarray([base.get(f, 0.0) for f in self.style_features], dtype=float)
         vector = vector - vector.mean()
 
         residual = self.artifact.get("residual")
@@ -138,16 +170,20 @@ class StyleExplainMixin:
         beta = np.asarray(positions[position]["beta"], dtype=float)
         perf_features = residual.get("perf_features") or self.perf_features
         values = [base[f] for f in perf_features if f in base]
-        design = np.array([
-            1.0,
-            1.0 if _is_win(game.get("win")) else 0.0,
-            float(np.mean(values)) if values else 0.0,
-        ], dtype=float)
+        design = np.array(
+            [
+                1.0,
+                1.0 if _is_win(game.get("win")) else 0.0,
+                float(np.mean(values)) if values else 0.0,
+            ],
+            dtype=float,
+        )
         vector = vector - design @ beta
         return vector - vector.mean()
 
-    def explain_game(self, position: str, z_scores: dict[str, float],
-                     game: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    def explain_game(
+        self, position: str, z_scores: dict[str, float], game: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
         centers = self.centroids.get(position)
         if centers is None or not z_scores:
             return None
@@ -178,29 +214,31 @@ class StyleExplainMixin:
             "ambiguous": bool(margin_norm < self.ambiguous_cut),
             "typical": typical,
             "membership": {int(i): float(p) for i, p in enumerate(membership)},
-            "contribution": {f: float(contribution[i])
-                             for i, f in enumerate(self.style_features)},
+            "contribution": {f: float(contribution[i]) for i, f in enumerate(self.style_features)},
             "vector": {f: float(vector[i]) for i, f in enumerate(self.style_features)},
         }
 
     def analyze_games(self, games: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows = super().analyze_games(games)
         for row in rows:
-            row["explain"] = self.explain_game(
-                row.get("team_position"), row.get("z") or {}, row
-            )
+            row["explain"] = self.explain_game(row.get("team_position"), row.get("z") or {}, row)
         return rows
 
     # ---------- 대표 스타일: 소속 확률 합산 ----------
     def dominant_style(self, rows: list[dict[str, Any]], main_position: str) -> dict[str, Any]:
-        selected = [row for row in rows
-                    if row.get("team_position") == main_position and row.get("explain")]
+        selected = [
+            row for row in rows if row.get("team_position") == main_position and row.get("explain")
+        ]
         if len(selected) < self.config["min_position_games"]:
-            message = (f"{main_position} 경기가 {len(selected)}판이라 "
-                       "대표 스타일을 판정할 수 없습니다.")
+            message = (
+                f"{main_position} 경기가 {len(selected)}판이라 대표 스타일을 판정할 수 없습니다."
+            )
             return {
-                "status": "insufficient", "games": len(selected), "styles": [],
-                "consistency": None, "distribution": [],
+                "status": "insufficient",
+                "games": len(selected),
+                "styles": [],
+                "consistency": None,
+                "distribution": [],
                 "confidence": _empty_confidence(message),
                 "ambiguous_games": 0,
                 "message": message,
@@ -227,8 +265,10 @@ class StyleExplainMixin:
 
         if top_share >= self.config["dominant_share"]:
             status, picked = "single", [top]
-        elif (second_share >= self.config["mixed_share"]
-              and top_two_share >= self.config["mixed_top2"]):
+        elif (
+            second_share >= self.config["mixed_share"]
+            and top_two_share >= self.config["mixed_top2"]
+        ):
             status, picked = "mixed", [top, second]
         else:
             status, picked = "unstable", [top, second]
@@ -245,31 +285,38 @@ class StyleExplainMixin:
             "confidence": confidence,
             "ambiguous_games": sum(1 for r in selected if r["explain"]["ambiguous"]),
             "styles": [
-                {"cluster": int(c),
-                 "ratio": round(100 * float(soft_share[c]), 1),
-                 "hard_ratio": round(100 * float(hard_share[c]), 1),
-                 **self._label(main_position, c)}
+                {
+                    "cluster": int(c),
+                    "ratio": round(100 * float(soft_share[c]), 1),
+                    "hard_ratio": round(100 * float(hard_share[c]), 1),
+                    **self._label(main_position, c),
+                }
                 for c in picked
             ],
             "distribution": [
-                {"style": self._label(main_position, c)["name"],
-                 "count": int(hard[c]),
-                 "ratio": round(100 * float(soft_share[c]), 1)}
+                {
+                    "style": self._label(main_position, c)["name"],
+                    "count": int(hard[c]),
+                    "ratio": round(100 * float(soft_share[c]), 1),
+                }
                 for c in ranked
             ],
         }
 
     # ---------- 신뢰도 ----------
-    def _confidence(self, rows, position: str, top_share: float,
-                    soft_share: np.ndarray) -> dict[str, Any]:
+    def _confidence(
+        self, rows, position: str, top_share: float, soft_share: np.ndarray
+    ) -> dict[str, Any]:
         meta = self._position_meta(position)
         margins = [row["explain"]["margin_norm"] for row in rows]
         mean_margin = float(np.mean(margins)) if margins else 0.0
-        ambiguous_rate = (float(np.mean([m < self.ambiguous_cut for m in margins]))
-                          if margins else 1.0)
+        ambiguous_rate = (
+            float(np.mean([m < self.ambiguous_cut for m in margins])) if margins else 1.0
+        )
 
-        typical_flags = [row["explain"]["typical"] for row in rows
-                         if row["explain"]["typical"] is not None]
+        typical_flags = [
+            row["explain"]["typical"] for row in rows if row["explain"]["typical"] is not None
+        ]
         typical_rate = float(np.mean(typical_flags)) if typical_flags else 1.0
 
         reference = meta.get("margin_p50") or self.ambiguous_cut * 2
@@ -282,26 +329,36 @@ class StyleExplainMixin:
         analysis_games = float(self.config.get("analysis_games", 10))
         games_score = float(np.clip(len(rows) / max(analysis_games, 1.0), 0, 1))
 
-        score = float(0.40 * share_score + 0.30 * margin_score
-                      + 0.20 * typical_rate + 0.10 * games_score)
+        score = float(
+            0.40 * share_score + 0.30 * margin_score + 0.20 * typical_rate + 0.10 * games_score
+        )
 
-        level = ("high" if score >= HIGH_CONFIDENCE
-                 else "medium" if score >= MEDIUM_CONFIDENCE else "low")
+        level = (
+            "high"
+            if score >= HIGH_CONFIDENCE
+            else "medium"
+            if score >= MEDIUM_CONFIDENCE
+            else "low"
+        )
 
         reasons = []
         if share_score < 0.35:
             reasons.append("경기별 스타일이 여러 군집에 고르게 흩어져 있습니다.")
         if ambiguous_rate >= 0.4:
-            reasons.append(f"{len(rows)}경기 중 {round(ambiguous_rate * len(rows))}경기가 "
-                           "두 스타일 경계에 걸쳐 있습니다.")
+            reasons.append(
+                f"{len(rows)}경기 중 {round(ambiguous_rate * len(rows))}경기가 "
+                "두 스타일 경계에 걸쳐 있습니다."
+            )
         if typical_rate < 0.6:
             reasons.append("학습 데이터의 전형적인 패턴에서 벗어난 경기가 많습니다.")
         if len(rows) < analysis_games:
-            reasons.append(f"주 포지션 경기가 {len(rows)}판으로 "
-                           f"기준({int(analysis_games)}판)보다 적습니다.")
+            reasons.append(
+                f"주 포지션 경기가 {len(rows)}판으로 기준({int(analysis_games)}판)보다 적습니다."
+            )
 
         return {
-            "level": level, "score": round(score, 2),
+            "level": level,
+            "score": round(score, 2),
             "top_share": round(top_share, 2),
             "mean_margin": round(mean_margin, 3),
             "ambiguous_rate": round(ambiguous_rate, 2),
@@ -326,7 +383,7 @@ class StyleExplainMixin:
         for i, feature in enumerate(self.style_features):
             center_value, user_value = float(center[i]), float(user[i])
             if abs(center_value) < 0.2:
-                continue                                # 이 스타일을 규정하지 않는 축
+                continue  # 이 스타일을 규정하지 않는 축
             same_sign = np.sign(center_value) == np.sign(user_value)
             ratio = user_value / center_value if abs(center_value) > 1e-6 else 0.0
 
@@ -337,19 +394,29 @@ class StyleExplainMixin:
             else:
                 match = MATCH_OFF
 
-            entry = {"metric": self._feature_label(feature), "key": feature,
-                     "user": round(user_value, 2), "style_center": round(center_value, 2),
-                     "ratio": round(float(ratio), 2), "match": match,
-                     "axis_weight": round(abs(center_value), 2)}
+            entry = {
+                "metric": self._feature_label(feature),
+                "key": feature,
+                "user": round(user_value, 2),
+                "style_center": round(center_value, 2),
+                "ratio": round(float(ratio), 2),
+                "match": match,
+                "axis_weight": round(abs(center_value), 2),
+            }
             (matched if match == MATCH_STRONG else off_style).append(entry)
 
         matched.sort(key=lambda e: -e["axis_weight"])
         off_style.sort(key=lambda e: -e["axis_weight"])
 
         decisive = sorted(
-            ({"metric": self._feature_label(f), "key": f,
-              "effect": round(float(contributions[i]), 3)}
-             for i, f in enumerate(self.style_features)),
+            (
+                {
+                    "metric": self._feature_label(f),
+                    "key": f,
+                    "effect": round(float(contributions[i]), 3),
+                }
+                for i, f in enumerate(self.style_features)
+            ),
             key=lambda e: -e["effect"],
         )[:2]
 
@@ -358,10 +425,12 @@ class StyleExplainMixin:
             "matched_axes": matched[:3],
             "off_style_axes": off_style[:2],
             "decisive_axes": decisive,
-            "axis_summary": (self._position_meta(position)
-                             .get("clusters", {})
-                             .get(str(int(cluster)), {})
-                             .get("axis_summary")),
+            "axis_summary": (
+                self._position_meta(position)
+                .get("clusters", {})
+                .get(str(int(cluster)), {})
+                .get("axis_summary")
+            ),
         }
 
     # ---------- 최종 조립 ----------
@@ -372,8 +441,9 @@ class StyleExplainMixin:
 
         rows = self.analyze_games(games)
         position = result["main_position"]
-        main_rows = [row for row in rows
-                     if row.get("team_position") == position and row.get("explain")]
+        main_rows = [
+            row for row in rows if row.get("team_position") == position and row.get("explain")
+        ]
 
         style = result.get("play_style", {})
         confidence = style.get("confidence") or _empty_confidence(
@@ -390,18 +460,22 @@ class StyleExplainMixin:
             result["style_evidence"] = None
             result["style_explanation_ko"] = []
 
-        result["coaching_mode"] = {"high": "style", "medium": "style_soft",
-                                   "low": "consistency"}.get(
-            confidence.get("level", "low"), "consistency")
+        result["coaching_mode"] = {
+            "high": "style",
+            "medium": "style_soft",
+            "low": "consistency",
+        }.get(confidence.get("level", "low"), "consistency")
 
         result["per_game_style"] = [
-            {"match_id": row.get("match_id"),
-             "champion_name": row.get("champion_name"),
-             "win": row.get("win"),
-             "style": self._label(position, row["explain"]["cluster"])["name"],
-             "runner_up": self._label(position, row["explain"]["runner_up"])["name"],
-             "margin_norm": row["explain"]["margin_norm"],
-             "ambiguous": row["explain"]["ambiguous"]}
+            {
+                "match_id": row.get("match_id"),
+                "champion_name": row.get("champion_name"),
+                "win": row.get("win"),
+                "style": self._label(position, row["explain"]["cluster"])["name"],
+                "runner_up": self._label(position, row["explain"]["runner_up"])["name"],
+                "margin_norm": row["explain"]["margin_norm"],
+                "ambiguous": row["explain"]["ambiguous"],
+            }
             for row in main_rows
         ]
         result["method_note"] = self.explain.get("method_note")
@@ -413,14 +487,14 @@ def make_explainable(base_cls):
     return type("ExplainablePlayStyleAnalyzer", (StyleExplainMixin, base_cls), {})
 
 
-try:                                        # 패키지로 쓸 때의 기본 클래스
+try:  # 패키지로 쓸 때의 기본 클래스
     try:
         from .playstyle_analyzer import PlayStyleAnalyzer as _BaseAnalyzer
     except ImportError:
         from playstyle_analyzer import PlayStyleAnalyzer as _BaseAnalyzer
 
     ExplainablePlayStyleAnalyzer = make_explainable(_BaseAnalyzer)
-except ImportError as _import_error:        # 노트북 단독 실행 — make_explainable 사용
+except ImportError as _import_error:  # 노트북 단독 실행 — make_explainable 사용
     _IMPORT_MESSAGE = (
         "playstyle_analyzer 를 import 하지 못했습니다 "
         f"({_import_error}).\n"
@@ -430,7 +504,7 @@ except ImportError as _import_error:        # 노트북 단독 실행 — make_e
         "make_explainable(PlayStyleAnalyzer) 를 쓰세요."
     )
 
-    class ExplainablePlayStyleAnalyzer:      # type: ignore[no-redef]
+    class ExplainablePlayStyleAnalyzer:  # type: ignore[no-redef]
         """기본 클래스를 못 찾았을 때, 원인을 알려주고 멈추는 자리표시자."""
 
         def __init__(self, *args, **kwargs):
@@ -440,8 +514,7 @@ except ImportError as _import_error:        # 노트북 단독 실행 — make_e
 # ----------------------------------------------------------------------
 # 사람이 읽는 설명 문장 (LLM 없이도 그대로 화면에 노출 가능)
 # ----------------------------------------------------------------------
-def explanation_sentences(evidence: dict[str, Any],
-                          confidence: dict[str, Any]) -> list[str]:
+def explanation_sentences(evidence: dict[str, Any], confidence: dict[str, Any]) -> list[str]:
     lines = []
     name = evidence["style"]
     level = confidence.get("level", "low")
@@ -450,11 +523,14 @@ def explanation_sentences(evidence: dict[str, Any],
     if level == "high":
         lines.append(f"최근 경기의 {share:.0%}가 {name} 패턴에 모여 대표 스타일로 판정했습니다.")
     elif level == "medium":
-        lines.append(f"{name}에 가장 가깝지만({share:.0%}) 경기별 편차가 있어 "
-                     "단정하기는 어렵습니다.")
+        lines.append(
+            f"{name}에 가장 가깝지만({share:.0%}) 경기별 편차가 있어 단정하기는 어렵습니다."
+        )
     else:
-        lines.append("경기마다 플레이 형태가 달라 대표 스타일을 특정하기 어렵습니다. "
-                     f"가장 가까운 쪽은 {name}입니다.")
+        lines.append(
+            "경기마다 플레이 형태가 달라 대표 스타일을 특정하기 어렵습니다. "
+            f"가장 가까운 쪽은 {name}입니다."
+        )
 
     if evidence["matched_axes"]:
         detail = ", ".join(
@@ -507,11 +583,15 @@ def build_coaching_prompt_v2(result: dict[str, Any], player_name: str = "플레�
     if level == "high":
         rules.append("대표 스타일을 확정적으로 서술해도 된다. 근거 축을 1~2개 인용하라.")
     elif level == "medium":
-        rules.append("대표 스타일은 '~에 가깝다' 수준으로만 서술하고, "
-                     "style_confidence.reasons 의 이유를 한 문장으로 밝혀라.")
+        rules.append(
+            "대표 스타일은 '~에 가깝다' 수준으로만 서술하고, "
+            "style_confidence.reasons 의 이유를 한 문장으로 밝혀라."
+        )
     else:
-        rules.append("대표 스타일을 단정하지 마라. 경기별 스타일이 흩어져 있다는 사실 자체를 "
-                     "핵심 주제로 삼고, 한 가지 형태를 정해 반복하도록 코칭하라.")
+        rules.append(
+            "대표 스타일을 단정하지 마라. 경기별 스타일이 흩어져 있다는 사실 자체를 "
+            "핵심 주제로 삼고, 한 가지 형태를 정해 반복하도록 코칭하라."
+        )
 
     if not payload.get("has_improvements"):
         rules.append("뚜렷한 개선점이 없으므로 만들어내지 마라. 필요하면 완곡한 제안 1개만 하라.")

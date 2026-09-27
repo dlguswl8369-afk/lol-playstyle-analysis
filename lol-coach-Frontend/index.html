@@ -61,17 +61,17 @@
             <article class="feature gold" data-target="metricsPanel">
                 <p class="feature-num">01 · BENCHMARK</p>
                 <h3>조건별 지표 비교</h3>
-                <p><b>Databricks가 포지션·티어·성장 곡선에 맞는 벤치마크와 최근 지표를 비교합니다.</b></p>
+                <p><b>포지션과 티어를 기준으로 최근 경기 지표를 비교해 강점과 개선 영역을 확인합니다.</b></p>
             </article>
             <article class="feature teal" data-target="stylePanel">
                 <p class="feature-num">02 · PLAYSTYLE</p>
-                <h3>ML 플레이스타일 분석</h3>
-                <p><b>최근 경기의 주 포지션과 학습된 군집 모델을 바탕으로 대표 플레이스타일을 분류합니다.</b></p>
+                <h3>AI 플레이스타일 분석</h3>
+                <p><b>최근 경기와 학습된 플레이 패턴을 분석해 나의 대표 플레이스타일을 찾아냅니다.</b></p>
             </article>
             <article class="feature purple" data-target="trendPanel">
                 <p class="feature-num">03 · COACHING</p>
-                <h3>검증된 코칭 리포트</h3>
-                <p><b>분석 엔진이 선정한 강점·개선점·우선 목표만 Azure OpenAI가 자연어로 설명합니다.</b></p>
+                <h3>맞춤형 코칭 리포트</h3>
+                <p><b>데이터로 확인된 강점과 개선점을 바탕으로 다음 경기에 적용할 목표를 제안합니다.</b></p>
             </article>
         </section>
     </main>
@@ -102,7 +102,7 @@
                     </div>
 
                     <div id="metrics"></div>
-                    <p class="note" id="metricsNote">Riot 경기 데이터의 단순 평균이며 평가 문구를 생성하지 않습니다.</p>
+                    <p class="note" id="metricsNote">경기 데이터의 단순 평균이며 평가 문구를 생성하지 않습니다.</p>
                     <button type="button" class="metrics-save" id="metricsSaveBtn" disabled>분석 후 지표 저장</button>
                 </section>
 
@@ -114,7 +114,7 @@
                     <div id="radar" class="chart-box"></div>
 
                     <div class="legend">
-                        <span><i class="teal"></i><b>Databricks ML 분석 결과</b></span>
+                        <span><i class="teal"></i><b>AI 분석 결과</b></span>
                     </div>
 
                     <button type="button" class="style-save" id="styleSaveBtn" disabled>리포트 생성 후 저장</button>
@@ -146,7 +146,7 @@
                     <small id="coachTarget"></small>
                 </div>
                 <form class="coach-form" id="coachForm">
-                    <p class="coach-form-copy">최근 전적을 Databricks 분석 파이프라인으로 보내 코칭 리포트를 생성합니다.</p>
+                    <p class="coach-form-copy">최근 전적을 코칭 리포트로 생성합니다.</p>
                     <button type="submit" id="coachBtn">코칭 리포트 생성</button>
                 </form>
                 <div id="coachAnswer" class="coach-answer">
@@ -246,7 +246,6 @@
                 <div class="panel-head">
                     <h2 class="c-teal">정보 및 경기 통계 검색</h2>
                     <span class="line transparent"></span>
-                    <small>Riot ID는 경기 통계를, 일반 질문은 공식 문서 RAG 답변을 제공합니다</small>
                 </div>
                 <form class="info-form" id="infoForm">
                     <label for="infoQuestion" class="sr-only">궁금한 LoL 정보</label>

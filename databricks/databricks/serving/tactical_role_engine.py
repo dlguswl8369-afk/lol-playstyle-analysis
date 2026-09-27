@@ -6,7 +6,6 @@ from collections import Counter
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-
 TACTICAL_ROLES = (
     "FRONTLINE",
     "BRUISER",
@@ -92,8 +91,6 @@ def role_analysis_policy(role_result: Mapping[str, Any]) -> dict[str, Any]:
             "tactical_role": role,
             "role_source": role_result.get("role_source", "unknown"),
             "role_fallback": unknown,
-            "role_fallback_reason": (
-                "no_valid_item_role_or_champion_default" if unknown else None
-            ),
+            "role_fallback_reason": ("no_valid_item_role_or_champion_default" if unknown else None),
         },
     }

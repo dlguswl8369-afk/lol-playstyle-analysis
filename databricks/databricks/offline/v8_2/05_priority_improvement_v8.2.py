@@ -16,19 +16,30 @@
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 from pyspark.sql import functions as F
+from scipy import stats
 
 CATALOG = "lol_insight"
 TACTICAL_ROLES = ["FRONTLINE", "BRUISER", "BURST_CARRY", "DPS_CARRY", "UTILITY"]
 COACH_FEATURES = [
-    "kda", "kill_participation", "cs_per_min", "gold_per_min", "gold_share",
-    "damage_per_min", "damage_taken_per_min", "damage_share", "damage_efficiency",
-    "vision_score_per_min", "wards_placed_per_min", "wards_killed_per_min",
-    "vision_wards_bought_per_min", "objective_damage_per_min"
+    "kda",
+    "kill_participation",
+    "cs_per_min",
+    "gold_per_min",
+    "gold_share",
+    "damage_per_min",
+    "damage_taken_per_min",
+    "damage_share",
+    "damage_efficiency",
+    "vision_score_per_min",
+    "wards_placed_per_min",
+    "wards_killed_per_min",
+    "vision_wards_bought_per_min",
+    "objective_damage_per_min",
 ]
 MIN_EFFECT_SIZE = 0.05
 FDR_ALPHA = 0.05
+
 
 def bh_correction(pvals: np.ndarray, alpha: float = FDR_ALPHA) -> np.ndarray:
     m = len(pvals)
@@ -39,8 +50,9 @@ def bh_correction(pvals: np.ndarray, alpha: float = FDR_ALPHA) -> np.ndarray:
     reject = np.zeros(m, dtype=bool)
     if passed.any():
         max_i = np.max(np.where(passed))
-        reject[order[:max_i + 1]] = True
+        reject[order[: max_i + 1]] = True
     return reject
+
 
 # COMMAND ----------
 
@@ -49,7 +61,9 @@ def bh_correction(pvals: np.ndarray, alpha: float = FDR_ALPHA) -> np.ndarray:
 
 # COMMAND ----------
 
-natural_df = spark.table(f"{CATALOG}.gold.natural_distribution").dropna(subset=COACH_FEATURES + ["win", "tactical_role"])
+natural_df = spark.table(f"{CATALOG}.gold.natural_distribution").dropna(
+    subset=COACH_FEATURES + ["win", "tactical_role"]
+)
 natural_df = natural_df.withColumn("win_int", F.col("win").cast("int"))
 
 agg_exprs = [F.count("*").alias("n")]
@@ -73,7 +87,8 @@ rf_map = {(r.tactical_role, r.feature): r.rf_importance for r in rf_pd.itertuple
 rows = []
 for row in stat_summary:
     role = row["tactical_role"]
-    if role not in TACTICAL_ROLES: continue
+    if role not in TACTICAL_ROLES:
+        continue
     n = row["n"]
 
     corrs, pvals = [], []
@@ -81,7 +96,7 @@ for row in stat_summary:
         r = row[f"{f}_corr"]
         r = float(r) if r is not None and not np.isnan(r) else 0.0
         corrs.append(r)
-        
+
         # 피어슨 상관계수 통계량 환산
         if n <= 2 or abs(r) >= 1.0:
             p = 0.0
@@ -93,18 +108,25 @@ for row in stat_summary:
     # Benjamini-Hochberg (BH) 보정 적용
     bh_pass = bh_correction(np.array(pvals))
 
-    for f, r, p, passed_bh in zip(COACH_FEATURES, corrs, pvals, bh_pass):
+    for f, r, p, passed_bh in zip(COACH_FEATURES, corrs, pvals, bh_pass, strict=False):
         effect_ok = abs(r) >= MIN_EFFECT_SIZE
         sig = bool(passed_bh and effect_ok)
-        rows.append({
-            "tactical_role": role, "feature": f,
-            "corr": round(float(r), 4), "p_value": round(float(p), 5),
-            "bh_significant": bool(passed_bh), "effect_size_ok": bool(effect_ok),
-            "significant": sig,
-            "direction": int(np.sign(r)) if sig else 0,
-            "weight": float(rf_map.get((role, f), 0.0) if sig else 0.0),
-        })
+        rows.append(
+            {
+                "tactical_role": role,
+                "feature": f,
+                "corr": round(float(r), 4),
+                "p_value": round(float(p), 5),
+                "bh_significant": bool(passed_bh),
+                "effect_size_ok": bool(effect_ok),
+                "significant": sig,
+                "direction": int(np.sign(r)) if sig else 0,
+                "weight": float(rf_map.get((role, f), 0.0) if sig else 0.0),
+            }
+        )
 
 direction_pd = pd.DataFrame(rows)
-spark.createDataFrame(direction_pd).write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.gold.role_metric_direction")
+spark.createDataFrame(direction_pd).write.format("delta").mode("overwrite").option(
+    "overwriteSchema", "true"
+).saveAsTable(f"{CATALOG}.gold.role_metric_direction")
 print("✅ PySpark 기반 상관계수 산출 및 BH FDR 통계 검증 완료!")

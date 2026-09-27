@@ -14,9 +14,7 @@ from pyspark.sql.window import Window
 CATALOG = "lol_insight"
 SCHEMA = "bronze"
 
-RAW_PATH = (
-    "abfss://lol-data@5dt2ndteam3.dfs.core.windows.net/raw"
-)
+RAW_PATH = "abfss://lol-data@5dt2ndteam3.dfs.core.windows.net/raw"
 
 ITEM_ROLE_TABLE = f"{CATALOG}.gold.item_role_profile"
 PROFILE_TABLE = f"{CATALOG}.gold.champion_profile_data_driven"
@@ -24,15 +22,11 @@ PROFILE_TABLE = f"{CATALOG}.gold.champion_profile_data_driven"
 
 def load_csv_to_bronze(file_name: str, table_name: str):
     frame = (
-        spark.read
-        .option("header", True)
-        .option("inferSchema", True)
-        .csv(f"{RAW_PATH}/{file_name}")
+        spark.read.option("header", True).option("inferSchema", True).csv(f"{RAW_PATH}/{file_name}")
     )
 
     (
-        frame.write
-        .format("delta")
+        frame.write.format("delta")
         .mode("overwrite")
         .option("overwriteSchema", "true")
         .saveAsTable(f"{CATALOG}.{SCHEMA}.{table_name}")
@@ -53,7 +47,7 @@ seeds_df = seed_low_df.select("player_id", "tier").unionByName(
 item_roles_df = spark.table(ITEM_ROLE_TABLE)
 profile_df = spark.table(PROFILE_TABLE)
 item_pd = item_roles_df.toPandas()
-ITEM_ROLE_MAP = dict(zip(item_pd["item_id"], item_pd["roles"]))
+ITEM_ROLE_MAP = dict(zip(item_pd["item_id"], item_pd["roles"], strict=False))
 VALID_ROLES = {"FRONTLINE", "BRUISER", "BURST_CARRY", "DPS_CARRY", "UTILITY"}
 
 
@@ -73,7 +67,8 @@ def infer_intent_role(item0, item1, item2, item3, item4, item5, default_role):
             continue
         if mapped:
             roles.extend(
-                role for role in (value.strip().upper() for value in mapped.split(","))
+                role
+                for role in (value.strip().upper() for value in mapped.split(","))
                 if role in VALID_ROLES
             )
 
@@ -133,12 +128,15 @@ silver_df = (
     )
     .withColumn("cs_per_min", F.col("total_cs") / minutes)
     .withColumn("gold_per_min", F.col("gold_earned") / minutes)
-    .withColumn("gold_share", F.col("gold_earned") / F.greatest(F.col("team_gold_earned"), F.lit(1)))
+    .withColumn(
+        "gold_share", F.col("gold_earned") / F.greatest(F.col("team_gold_earned"), F.lit(1))
+    )
     .withColumn("damage_per_min", F.col("total_damage_dealt_to_champions") / minutes)
     .withColumn("damage_taken_per_min", F.col("total_damage_taken") / minutes)
     .withColumn(
         "damage_share",
-        F.col("total_damage_dealt_to_champions") / F.greatest(F.col("team_damage_to_champions"), F.lit(1)),
+        F.col("total_damage_dealt_to_champions")
+        / F.greatest(F.col("team_damage_to_champions"), F.lit(1)),
     )
     .withColumn(
         "damage_taken_share",
@@ -146,7 +144,8 @@ silver_df = (
     )
     .withColumn(
         "damage_efficiency",
-        F.col("total_damage_dealt_to_champions") / F.greatest(F.col("total_damage_taken"), F.lit(1)),
+        F.col("total_damage_dealt_to_champions")
+        / F.greatest(F.col("total_damage_taken"), F.lit(1)),
     )
     .withColumn("vision_score_per_min", F.col("vision_score") / minutes)
     .withColumn("wards_placed_per_min", F.col("wards_placed") / minutes)
@@ -165,7 +164,8 @@ gold_benchmark_df = silver_df.join(match_tier_df, on="match_id", how="inner")
 
 for table_name in ("benchmark_source", "natural_distribution"):
     (
-        gold_benchmark_df.write.format("delta").mode("overwrite")
+        gold_benchmark_df.write.format("delta")
+        .mode("overwrite")
         .option("overwriteSchema", "true")
         .saveAsTable(f"{CATALOG}.gold.{table_name}")
     )

@@ -7,8 +7,8 @@ from collections.abc import Callable, Mapping
 from copy import deepcopy
 from typing import Any
 
-from .combat_context_engine import build_combat_context
 from .combat_benchmark import build_combat_benchmark_context
+from .combat_context_engine import build_combat_context
 from .final_candidate_assembler import assemble_final_candidates
 from .inference_adapters import AnalysisDataAdapter, LLMClient
 from .inference_schema import InferenceSchemaError, normalize_recent_games
@@ -27,7 +27,6 @@ from .unified_prompt import (
     build_unified_prompt,
     validate_llm_response,
 )
-
 
 EventHook = Callable[[str], None]
 
@@ -125,7 +124,8 @@ def run_unified_inference(
             )
         )
     valid_roles = [
-        result["tactical_role"] for result in role_results
+        result["tactical_role"]
+        for result in role_results
         if result["tactical_role"] != UNKNOWN_ROLE
     ]
     tactical_role = _mode(valid_roles, UNKNOWN_ROLE)

@@ -1,4 +1,5 @@
 import os
+
 import requests
 
 SAVE_DIR = "assets/image/rune_images"
@@ -7,10 +8,7 @@ SAVE_DIR = "assets/image/rune_images"
 version = requests.get("https://ddragon.leagueoflegends.com/api/versions.json").json()[0]
 
 # 룬 데이터
-url = (
-    f"https://ddragon.leagueoflegends.com/cdn/"
-    f"{version}/data/ko_KR/runesReforged.json"
-)
+url = f"https://ddragon.leagueoflegends.com/cdn/{version}/data/ko_KR/runesReforged.json"
 
 rune_data = requests.get(url).json()
 
@@ -26,7 +24,7 @@ os.makedirs(RUNE_DIR, exist_ok=True)
 
 
 def download_image(image_path, save_path):
-    image_url = f"https://ddragon.leagueoflegends.com/cdn/img/" f"{image_path}"
+    image_url = f"https://ddragon.leagueoflegends.com/cdn/img/{image_path}"
 
     response = requests.get(image_url)
     response.raise_for_status()
@@ -36,7 +34,6 @@ def download_image(image_path, save_path):
 
 
 for rune_path in rune_data:
-
     # =========================
     # 1. 룬 계열 이미지
     # =========================
@@ -54,9 +51,7 @@ for rune_path in rune_data:
     # 2. 개별 룬 이미지
     # =========================
     for slot in rune_path["slots"]:
-
         for rune in slot["runes"]:
-
             rune_id = rune["id"]
             rune_name = rune["name"]
             rune_icon = rune["icon"]

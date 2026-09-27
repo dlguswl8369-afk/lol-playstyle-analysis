@@ -34,3 +34,12 @@ extend-exclude = ["data"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Databricks exports are cell-oriented notebooks rather than importable modules.
+# Their runtime injects spark/display/dbutils, and Markdown cells intentionally
+# preserve prose and table rows that can exceed the Python line limit.
+"databricks/databricks/offline/**/*.py" = ["E402", "E501", "F821"]
+"databricks/databricks/serving/unified_inference_job.py" = ["E402", "F821"]
+# Line breaks inside this file's policy prompt carry meaning for the LLM.
+"databricks/databricks/serving/unified_prompt.py" = ["E501"]

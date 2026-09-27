@@ -12,7 +12,6 @@ from ..offline.v8_2.benchmark_policy import select_benchmark
 from .inference_schema import COACH_FEATURES
 from .tactical_role_engine import UNKNOWN_ROLE, normalize_role, role_analysis_policy
 
-
 CONTEXT_SENSITIVE_METRICS = {"damage_taken_per_min"}
 SAFE_BENCHMARK_DIRECTIONS = {
     feature: 1 for feature in COACH_FEATURES if feature not in CONTEXT_SENSITIVE_METRICS
@@ -80,12 +79,13 @@ def build_priority_candidates(
         }
 
     rf_map = {
-        (str(row.get("tactical_role")), str(row.get("feature"))): float(row.get("rf_importance") or 0.0)
+        (str(row.get("tactical_role")), str(row.get("feature"))): float(
+            row.get("rf_importance") or 0.0
+        )
         for row in rf_importance_rows
     }
     direction_map = {
-        (str(row.get("tactical_role")), str(row.get("feature"))): row
-        for row in direction_rows
+        (str(row.get("tactical_role")), str(row.get("feature"))): row for row in direction_rows
     }
 
     candidates = []
@@ -143,9 +143,7 @@ def build_priority_candidates(
                     and not context_sensitive
                 ),
                 "ranking_group": (
-                    "benchmark_only_reference"
-                    if role == UNKNOWN_ROLE
-                    else "role_specific_rf_fdr"
+                    "benchmark_only_reference" if role == UNKNOWN_ROLE else "role_specific_rf_fdr"
                 ),
                 "score_comparable_to_role_specific": role != UNKNOWN_ROLE,
                 "signal_type": (

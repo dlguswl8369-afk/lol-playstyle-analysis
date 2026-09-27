@@ -9,11 +9,16 @@ from typing import Any
 
 from .tactical_role_engine import normalize_role
 
-
 COMBAT_METRICS = (
-    "deaths", "kda", "kill_participation", "damage_per_min",
-    "damage_taken_per_min", "damage_share", "damage_taken_share",
-    "damage_efficiency", "gold_share",
+    "deaths",
+    "kda",
+    "kill_participation",
+    "damage_per_min",
+    "damage_taken_per_min",
+    "damage_share",
+    "damage_taken_share",
+    "damage_efficiency",
+    "gold_share",
 )
 
 
@@ -71,9 +76,7 @@ def build_combat_context(
     _, low_efficiency, efficiency_basis = classify(
         "damage_efficiency", avg_efficiency, heuristic_high=1.25, heuristic_low=1.0
     )
-    good_kda, _, kda_basis = classify(
-        "kda", avg_kda, heuristic_high=3.0, heuristic_low=1.5
-    )
+    good_kda, _, kda_basis = classify("kda", avg_kda, heuristic_high=3.0, heuristic_low=1.5)
     good_kp, _, kp_basis = classify(
         "kill_participation", avg_kp, heuristic_high=0.55, heuristic_low=0.35
     )
@@ -115,9 +118,7 @@ def build_combat_context(
             {
                 "type": "combat_review",
                 "topic": "engagement_selection_and_survival",
-                "evidence_keys": [
-                    "damage_taken_per_min", "deaths", "damage_efficiency"
-                ],
+                "evidence_keys": ["damage_taken_per_min", "deaths", "damage_efficiency"],
                 "message_hint": (
                     "받은 피해, 데스, 피해 효율이 함께 불리한 패턴이므로 교전 선택과 "
                     "생존 과정을 복기할 후보입니다. 데이터만으로 진입 원인을 확정하지 않습니다."
@@ -150,12 +151,22 @@ def build_combat_context(
         "avg_deaths": round(avg_deaths, 6) if avg_deaths is not None else None,
         "avg_kda": round(avg_kda, 6) if avg_kda is not None else None,
         "avg_kill_participation": round(avg_kp, 6) if avg_kp is not None else None,
-        "avg_damage_per_min": round(averages["damage_per_min"], 6) if averages["damage_per_min"] is not None else None,
-        "avg_damage_taken_per_min": round(averages["damage_taken_per_min"], 6) if averages["damage_taken_per_min"] is not None else None,
-        "avg_damage_share": round(averages["damage_share"], 6) if averages["damage_share"] is not None else None,
-        "avg_damage_taken_share": round(averages["damage_taken_share"], 6) if averages["damage_taken_share"] is not None else None,
+        "avg_damage_per_min": round(averages["damage_per_min"], 6)
+        if averages["damage_per_min"] is not None
+        else None,
+        "avg_damage_taken_per_min": round(averages["damage_taken_per_min"], 6)
+        if averages["damage_taken_per_min"] is not None
+        else None,
+        "avg_damage_share": round(averages["damage_share"], 6)
+        if averages["damage_share"] is not None
+        else None,
+        "avg_damage_taken_share": round(averages["damage_taken_share"], 6)
+        if averages["damage_taken_share"] is not None
+        else None,
         "avg_damage_efficiency": round(avg_efficiency, 6) if avg_efficiency is not None else None,
-        "avg_gold_share": round(averages["gold_share"], 6) if averages["gold_share"] is not None else None,
+        "avg_gold_share": round(averages["gold_share"], 6)
+        if averages["gold_share"] is not None
+        else None,
         "win_rate": round(sum(wins) / len(wins), 6) if wins else None,
         "damage_taken_benchmark_gap": damage_taken_benchmark_gap,
         "benchmark_gaps": {

@@ -8,7 +8,6 @@ from typing import Any
 
 from .playstyle_explain_v2 import ExplainablePlayStyleAnalyzer as _ExplainableAnalyzer
 
-
 EXPECTED_ANALYSIS_GAMES = 10
 EXPECTED_QUEUE_FILTER = 420
 FORBIDDEN_STANDALONE_METRIC = "damage_taken_per_min"
@@ -24,9 +23,20 @@ def validate_style_artifact(
     expected_queue_filter: int = EXPECTED_QUEUE_FILTER,
 ) -> dict[str, Any]:
     required = {
-        "version", "artifact_type", "authoritative_source", "analysis_games",
-        "queue_filter", "config", "reliability", "stats", "fallback_stats",
-        "centroids", "labels", "style_baseline", "feature_labels", "explain",
+        "version",
+        "artifact_type",
+        "authoritative_source",
+        "analysis_games",
+        "queue_filter",
+        "config",
+        "reliability",
+        "stats",
+        "fallback_stats",
+        "centroids",
+        "labels",
+        "style_baseline",
+        "feature_labels",
+        "explain",
     }
     missing = sorted(required - artifact.keys())
     if missing:
@@ -74,7 +84,8 @@ def enforce_feedback_safety(result: dict[str, Any]) -> dict[str, Any]:
     sanitized = dict(result)
     for key in ("strengths", "improvements"):
         sanitized[key] = [
-            item for item in sanitized.get(key, [])
+            item
+            for item in sanitized.get(key, [])
             if item.get("key") != FORBIDDEN_STANDALONE_METRIC
         ]
     primary = sanitized.get("primary_goal")
@@ -82,8 +93,7 @@ def enforce_feedback_safety(result: dict[str, Any]) -> dict[str, Any]:
         sanitized["primary_goal"] = None
     trend = dict(sanitized.get("recent_trend") or {})
     trend["changes"] = [
-        item for item in trend.get("changes", [])
-        if item.get("key") != FORBIDDEN_STANDALONE_METRIC
+        item for item in trend.get("changes", []) if item.get("key") != FORBIDDEN_STANDALONE_METRIC
     ]
     if trend and trend.get("status") == "changed" and not trend["changes"]:
         trend["status"] = "stable"

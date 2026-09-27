@@ -1,25 +1,23 @@
+import hashlib
+import json
 import os
 import re
 import sys
 import time
-import requests
-import json
-import hashlib
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock
 from typing import Any
 
+import requests
+import uvicorn
+from azure.identity import ClientSecretCredential
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-import uvicorn
-
-
-from azure.identity import ClientSecretCredential
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent
@@ -35,8 +33,7 @@ load_dotenv(PROJECT_DIR / "lol-rag-local-test.env", override=False)
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from lol_rag.orchestrator import AgentDependencies, answer_question
-
+from lol_rag.orchestrator import AgentDependencies, answer_question  # noqa: E402
 
 DATABRICKS_JOB_ID = os.getenv("DATABRICKS_JOB_ID")
 DATABRICKS_HOST = os.getenv("DATABRICKS_HOST")
@@ -52,8 +49,8 @@ _RAG_LOCK = Lock()
 _RAG_DEPENDENCIES: AgentDependencies | None = None
 
 
-
 app = FastAPI(title="LoL AI Coaching API")
+
 
 class LolRagRequest(BaseModel):
     riot_id: str | None = None
@@ -125,11 +122,10 @@ def build_player_summary(matches: list[dict[str, Any]]) -> dict[str, Any]:
             "kill_participation": _average(matches, "kill_participation") * 100,
             "vision_score_per_min": _average(matches, "vision_score_per_min"),
             "damage_per_min": _average(matches, "damage_per_min"),
-            "objective_damage_per_min": _average(
-                matches, "objective_damage_per_min"
-            ),
+            "objective_damage_per_min": _average(matches, "objective_damage_per_min"),
         },
     }
+
 
 def missing_rag_config() -> list[str]:
     required = {
@@ -165,6 +161,7 @@ def get_rag_dependencies() -> AgentDependencies:
             )
     return _RAG_DEPENDENCIES
 
+
 _SENSITIVE_RESPONSE_KEYS = {
     "account_id",
     "authorization",
@@ -177,6 +174,7 @@ _SENSITIVE_RESPONSE_KEYS = {
     "token",
     "x-riot-token",
 }
+
 
 def safe_rag_response(value: Any) -> Any:
     if isinstance(value, dict):
@@ -227,6 +225,7 @@ def needs_riot_id_context(question: str) -> bool:
         )
     )
 
+
 def missing_databricks_config() -> list[str]:
     config = {
         "DATABRICKS_HOST": DATABRICKS_HOST,
@@ -234,6 +233,7 @@ def missing_databricks_config() -> list[str]:
         "DATABRICKS_JOB_ID": DATABRICKS_JOB_ID,
     }
     return [name for name, value in config.items() if not value]
+
 
 def simple_player_statistics_response(
     game_name: str,
@@ -312,28 +312,20 @@ def simple_player_statistics_response(
             "elapsed_ms": round(elapsed_ms, 1),
         },
     }
+
+
 def puuid_to_player_id(puuid: str) -> str:
-    return hashlib.sha256(
-        puuid.encode("utf-8")
-    ).hexdigest()[:24]
+    return hashlib.sha256(puuid.encode("utf-8")).hexdigest()[:24]
 
 
-# 솔로 티어 가져오기 
+# 솔로 티어 가져오기
 def get_solo_tier(puuid: str) -> str:
-
     """Return current solo-queue tier or UNKNOWN when unavailable."""
-    url = (
-        "https://kr.api.riotgames.com"
-        f"/lol/league/v4/entries/by-puuid/{puuid}"
-    )
+    url = f"https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/{puuid}"
     headers = {"X-Riot-Token": RIOT_API_KEY}
 
     try:
-        response = requests.get(
-            url,
-            headers=headers,
-            timeout=30
-        )
+        response = requests.get(url, headers=headers, timeout=30)
     except requests.RequestException:
         return "UNKNOWN"
 
@@ -351,7 +343,8 @@ def get_solo_tier(puuid: str) -> str:
 
     return "UNKNOWN"
 
-# 솔로 랭크 가져오기 
+
+# 솔로 랭크 가져오기
 def get_solo_rank(puuid: str) -> dict[str, Any] | None:
     """Return the solo-queue rank in the shape expected by the frontend."""
     response = requests.get(
@@ -373,6 +366,7 @@ def get_solo_rank(puuid: str) -> dict[str, Any] | None:
             }
     return None
 
+
 # 소환사 가져오기
 def get_summoner(puuid: str) -> dict[str, Any]:
     response = requests.get(
@@ -383,57 +377,39 @@ def get_summoner(puuid: str) -> dict[str, Any]:
     if response.status_code != 200:
         return {}
     return response.json()
-# 최근 경기 검색 
+
+
+# 최근 경기 검색
 def get_recent_match_ids(puuid: str, count: int = 10):
 
-    url = (
-        "https://asia.api.riotgames.com"
-        f"/lol/match/v5/matches/by-puuid/{puuid}/ids"
-    )
+    url = f"https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
 
-    headers = {
-        "X-Riot-Token": RIOT_API_KEY
-    }
+    headers = {"X-Riot-Token": RIOT_API_KEY}
 
-    params = {
-        "start": 0,
-        "count": count,
-        "queue": 420
-    }
+    params = {"start": 0, "count": count, "queue": 420}
 
-    response = requests.get(
-        url,
-        headers=headers,
-        params=params,
-        timeout=30
-    )
+    response = requests.get(url, headers=headers, params=params, timeout=30)
 
     if response.status_code != 200:
         return []
 
     return response.json()
-# 경기 detail 가져오기 
+
+
+# 경기 detail 가져오기
 def get_match_detail(match_id: str):
 
-    url = (
-        "https://asia.api.riotgames.com"
-        f"/lol/match/v5/matches/{match_id}"
-    )
+    url = f"https://asia.api.riotgames.com/lol/match/v5/matches/{match_id}"
 
-    headers = {
-        "X-Riot-Token": RIOT_API_KEY
-    }
+    headers = {"X-Riot-Token": RIOT_API_KEY}
 
-    response = requests.get(
-        url,
-        headers=headers,
-        timeout=30
-    )
+    response = requests.get(url, headers=headers, timeout=30)
 
     if response.status_code != 200:
         return None
 
     return response.json()
+
 
 def extract_player_from_match(match_detail: dict, puuid: str):
 
@@ -447,12 +423,11 @@ def extract_player_from_match(match_detail: dict, puuid: str):
             return participant
 
     return None
+
+
 def build_player_features(match_detail: dict, puuid: str):
 
-    player = extract_player_from_match(
-        match_detail,
-        puuid
-    )
+    player = extract_player_from_match(match_detail, puuid)
 
     if player is None:
         return None
@@ -460,43 +435,26 @@ def build_player_features(match_detail: dict, puuid: str):
     info = match_detail["info"]
     team_id = player["teamId"]
 
-    team_players = [
-        p for p in info["participants"]
-        if p["teamId"] == team_id
-    ]
+    team_players = [p for p in info["participants"] if p["teamId"] == team_id]
 
-    team_total_kills = sum(
-        p["kills"] for p in team_players
-    )
+    team_total_kills = sum(p["kills"] for p in team_players)
 
-    team_total_gold = sum(
-        p["goldEarned"] for p in team_players
-    )
+    team_total_gold = sum(p["goldEarned"] for p in team_players)
 
-    team_total_damage = sum(
-        p["totalDamageDealtToChampions"]
-        for p in team_players
-    )
+    team_total_damage = sum(p["totalDamageDealtToChampions"] for p in team_players)
 
-    team_total_damage_taken = sum(
-        p["totalDamageTaken"]
-        for p in team_players
-    )
+    team_total_damage_taken = sum(p["totalDamageTaken"] for p in team_players)
 
     duration_seconds = info["gameDuration"]
     duration_minutes = duration_seconds / 60
 
-    total_cs = (
-        player["totalMinionsKilled"]
-        + player["neutralMinionsKilled"]
-    )
+    total_cs = player["totalMinionsKilled"] + player["neutralMinionsKilled"]
 
     game_start_timestamp = info.get("gameStartTimestamp")
     game_start_datetime = None
     if game_start_timestamp:
         game_start_datetime = datetime.fromtimestamp(
-            game_start_timestamp / 1000,
-            tz=timezone.utc
+            game_start_timestamp / 1000, tz=UTC
         ).isoformat()
 
     perks = player.get("perks") or {}
@@ -507,9 +465,7 @@ def build_player_features(match_detail: dict, puuid: str):
     kills = player["kills"]
     deaths = player["deaths"]
     assists = player["assists"]
-    kill_participation = (
-        (kills + assists) / team_total_kills if team_total_kills > 0 else 0
-    )
+    kill_participation = (kills + assists) / team_total_kills if team_total_kills > 0 else 0
 
     return {
         "match_id": match_detail["metadata"]["matchId"],
@@ -528,45 +484,26 @@ def build_player_features(match_detail: dict, puuid: str):
         "kills": kills,
         "deaths": deaths,
         "assists": assists,
-        "kda": (
-            player["kills"] + player["assists"]
-        ) / max(player["deaths"], 1),
+        "kda": (player["kills"] + player["assists"]) / max(player["deaths"], 1),
         "total_cs": total_cs,
         "cs_per_min": total_cs / duration_minutes,
         "gold_earned": player["goldEarned"],
         "gold_per_min": player["goldEarned"] / duration_minutes,
-        "total_damage_dealt_to_champions":
-            player["totalDamageDealtToChampions"],
-        "damage_per_min":
-            player["totalDamageDealtToChampions"] / duration_minutes,
-        "total_damage_taken":
-            player["totalDamageTaken"],
-        "damage_taken_per_min":
-            player["totalDamageTaken"] / duration_minutes,
+        "total_damage_dealt_to_champions": player["totalDamageDealtToChampions"],
+        "damage_per_min": player["totalDamageDealtToChampions"] / duration_minutes,
+        "total_damage_taken": player["totalDamageTaken"],
+        "damage_taken_per_min": player["totalDamageTaken"] / duration_minutes,
         "vision_score": player["visionScore"],
-        "vision_score_per_min":
-            player["visionScore"] / duration_minutes,
+        "vision_score_per_min": player["visionScore"] / duration_minutes,
         "wards_placed": player["wardsPlaced"],
         "wards_killed": player["wardsKilled"],
-        "vision_wards_bought_in_game":
-            player["visionWardsBoughtInGame"],
-        "damage_dealt_to_objectives":
-            player["damageDealtToObjectives"],
-        "objective_damage_per_min":
-            player["damageDealtToObjectives"] / duration_minutes,
-        "kill_participation": (
-            kill_participation
-        ),
-
-        "gold_share": (
-            player["goldEarned"] / team_total_gold
-            if team_total_gold > 0
-            else 0
-        ),
-
+        "vision_wards_bought_in_game": player["visionWardsBoughtInGame"],
+        "damage_dealt_to_objectives": player["damageDealtToObjectives"],
+        "objective_damage_per_min": player["damageDealtToObjectives"] / duration_minutes,
+        "kill_participation": (kill_participation),
+        "gold_share": (player["goldEarned"] / team_total_gold if team_total_gold > 0 else 0),
         "damage_share": (
-            player["totalDamageDealtToChampions"]
-            / team_total_damage
+            player["totalDamageDealtToChampions"] / team_total_damage
             if team_total_damage > 0
             else 0
         ),
@@ -576,15 +513,11 @@ def build_player_features(match_detail: dict, puuid: str):
             else 0
         ),
         "damage_efficiency": (
-            player["totalDamageDealtToChampions"]
-            / max(player["totalDamageTaken"], 1)
+            player["totalDamageDealtToChampions"] / max(player["totalDamageTaken"], 1)
         ),
         "wards_placed_per_min": player["wardsPlaced"] / duration_minutes,
         "wards_killed_per_min": player["wardsKilled"] / duration_minutes,
-        "vision_wards_bought_per_min": (
-            player["visionWardsBoughtInGame"] / duration_minutes
-        ),
-
+        "vision_wards_bought_per_min": (player["visionWardsBoughtInGame"] / duration_minutes),
         # Camel-case aliases consumed by the bundled dashboard. Keeping the
         # original snake-case fields preserves the Databricks notebook input.
         "championName": player["championName"],
@@ -604,10 +537,8 @@ def build_player_features(match_detail: dict, puuid: str):
         "teamPosition": player["teamPosition"],
     }
 
-def get_recent_player_features(
-    match_ids: list,
-    puuid: str
-):
+
+def get_recent_player_features(match_ids: list, puuid: str):
 
     if not match_ids:
         return []
@@ -630,22 +561,14 @@ def get_recent_player_features(
     worker_count = min(5, len(match_ids))
     with ThreadPoolExecutor(max_workers=worker_count) as executor:
         recent_games = [
-            features
-            for features in executor.map(load_features, match_ids)
-            if features is not None
+            features for features in executor.map(load_features, match_ids) if features is not None
         ]
 
     return recent_games
 
-def run_databricks_coaching(
-    player_id: str,
-    recent_games: list,
-    tier: str
-):
-    headers = {
-        "Authorization": f"Bearer {DATABRICKS_TOKEN}",
-        "Content-Type": "application/json"
-    }
+
+def run_databricks_coaching(player_id: str, recent_games: list, tier: str):
+    headers = {"Authorization": f"Bearer {DATABRICKS_TOKEN}", "Content-Type": "application/json"}
 
     url = f"{DATABRICKS_HOST}/api/2.1/jobs/run-now"
 
@@ -686,18 +609,14 @@ def run_databricks_coaching(
         for game in recent_games
     ]
 
-    recent_games_json = json.dumps(
-        compact_games,
-        ensure_ascii=False,
-        separators=(",", ":")
-    )
+    recent_games_json = json.dumps(compact_games, ensure_ascii=False, separators=(",", ":"))
 
     payload_bytes = len(recent_games_json.encode("utf-8"))
     if payload_bytes >= 10000:
         return {
             "status": "error",
             "error": "recent_games_json_too_large",
-            "payload_bytes": payload_bytes
+            "payload_bytes": payload_bytes,
         }
 
     payload = {
@@ -705,16 +624,11 @@ def run_databricks_coaching(
         "notebook_params": {
             "player_id": player_id,
             "recent_games_json": recent_games_json,
-            "tier": tier or "UNKNOWN"
-        }
+            "tier": tier or "UNKNOWN",
+        },
     }
 
-    response = requests.post(
-        url,
-        headers=headers,
-        json=payload,
-        timeout=30
-    )
+    response = requests.post(url, headers=headers, json=payload, timeout=30)
 
     if response.status_code != 200:
         return None
@@ -724,10 +638,7 @@ def run_databricks_coaching(
 
 @app.get("/api")
 def root():
-    return {
-        "status": "success",
-        "message": "LoL AI Coaching API"
-    }
+    return {"status": "success", "message": "LoL AI Coaching API"}
 
 
 @app.get("/health")
@@ -766,9 +677,7 @@ def player_analysis(request: PlayerAnalysisRequest):
     if response.status_code != 200:
         raise HTTPException(
             status_code=response.status_code if response.status_code in error_codes else 502,
-            detail={
-                "error_code": error_codes.get(response.status_code, "RIOT_API_ERROR")
-            },
+            detail={"error_code": error_codes.get(response.status_code, "RIOT_API_ERROR")},
         )
 
     account = response.json()
@@ -783,9 +692,7 @@ def player_analysis(request: PlayerAnalysisRequest):
     with ThreadPoolExecutor(max_workers=3) as executor:
         summoner_future = executor.submit(get_summoner, puuid)
         rank_future = executor.submit(get_solo_rank, puuid)
-        match_ids_future = executor.submit(
-            get_recent_match_ids, puuid, request.match_count
-        )
+        match_ids_future = executor.submit(get_recent_match_ids, puuid, request.match_count)
         summoner = summoner_future.result()
         rank = rank_future.result()
         match_ids = match_ids_future.result()
@@ -876,29 +783,23 @@ def chat(request: CoachRequest):
         "report": report,
     }
 
+
 @app.get("/riot/account/{game_name}/{tag_line}")
 def get_riot_account(game_name: str, tag_line: str):
 
     url = (
-        f"https://asia.api.riotgames.com"
-        f"/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
+        f"https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
     )
 
-    headers = {
-        "X-Riot-Token": RIOT_API_KEY
-    }
+    headers = {"X-Riot-Token": RIOT_API_KEY}
 
-    response = requests.get(
-        url,
-        headers=headers,
-        timeout=30
-    )
+    response = requests.get(url, headers=headers, timeout=30)
 
     if response.status_code != 200:
         return {
             "status": "error",
             "status_code": response.status_code,
-            "message": "Riot 계정을 조회하지 못했습니다."
+            "message": "Riot 계정을 조회하지 못했습니다.",
         }
 
     account = response.json()
@@ -908,14 +809,8 @@ def get_riot_account(game_name: str, tag_line: str):
     tier = get_solo_tier(puuid)
 
     # 최근 솔로랭크 10경기 ID 조회
-    match_ids = get_recent_match_ids(
-        puuid,
-        count=10
-    )
-    recent_games = get_recent_player_features(
-        match_ids,
-        puuid
-    )
+    match_ids = get_recent_match_ids(puuid, count=10)
+    recent_games = get_recent_player_features(match_ids, puuid)
 
     return {
         "status": "success",
@@ -925,7 +820,7 @@ def get_riot_account(game_name: str, tag_line: str):
         "player_id": player_id,
         "tier": tier,
         "match_count": len(recent_games),
-        "recent_games": recent_games
+        "recent_games": recent_games,
     }
 
 
@@ -965,7 +860,9 @@ def rag_search(request: LolRagRequest):
             status_code=400,
             detail={
                 "error_code": "RIOT_ID_REQUIRED",
-                "message": "먼저 게임이름#태그를 입력하거나 질문 앞에 게임이름/#태그/를 붙여 주세요.",
+                "message": (
+                    "먼저 게임이름#태그를 입력하거나 질문 앞에 게임이름/#태그/를 붙여 주세요."
+                ),
             },
         )
 
@@ -979,7 +876,6 @@ def rag_search(request: LolRagRequest):
     if game_name and tag_line:
         result["subject"] = {"game_name": game_name, "tag_line": tag_line}
     return safe_rag_response(result)
-
 
 
 @app.get("/coach/riot/{game_name}/{tag_line}")
@@ -1006,7 +902,7 @@ def coach_by_riot_id(game_name: str, tag_line: str):
             return {
                 "status": "error",
                 "message": "Riot 계정을 조회하지 못했습니다.",
-                "status_code": response.status_code
+                "status_code": response.status_code,
             }
 
         account = response.json()
@@ -1028,10 +924,7 @@ def coach_by_riot_id(game_name: str, tag_line: str):
         )
 
     if not recent_games:
-        return {
-            "status": "error",
-            "message": "분석할 수 있는 최근 솔로랭크 경기가 없습니다."
-        }
+        return {"status": "error", "message": "분석할 수 있는 최근 솔로랭크 경기가 없습니다."}
 
     match_signature = hashlib.sha256(
         json.dumps(
@@ -1048,23 +941,17 @@ def coach_by_riot_id(game_name: str, tag_line: str):
     # 3. Databricks Job 실행
     job_response = run_databricks_coaching(player_id, recent_games, tier)
     if job_response is None:
-        return {
-            "status": "error",
-            "message": "Databricks Job 실행 요청에 실패했습니다."
-        }
+        return {"status": "error", "message": "Databricks Job 실행 요청에 실패했습니다."}
 
     if job_response.get("status") == "error":
         return {
             "status": "error",
             "message": "Databricks Job 파라미터 생성에 실패했습니다.",
-            "detail": job_response
+            "detail": job_response,
         }
 
     run_id = job_response["run_id"]
-    db_headers = {
-        "Authorization": f"Bearer {DATABRICKS_TOKEN}",
-        "Content-Type": "application/json"
-    }
+    db_headers = {"Authorization": f"Bearer {DATABRICKS_TOKEN}", "Content-Type": "application/json"}
 
     # 4. Job 완료까지 대기 (최대 15분)
     deadline = time.time() + 900
@@ -1075,7 +962,7 @@ def coach_by_riot_id(game_name: str, tag_line: str):
             f"{DATABRICKS_HOST}/api/2.1/jobs/runs/get",
             headers=db_headers,
             params={"run_id": run_id},
-            timeout=30
+            timeout=30,
         )
 
         if status_response.status_code != 200:
@@ -1083,7 +970,7 @@ def coach_by_riot_id(game_name: str, tag_line: str):
                 "status": "error",
                 "message": "Databricks Job 상태를 확인하지 못했습니다.",
                 "run_id": run_id,
-                "detail": status_response.text
+                "detail": status_response.text,
             }
 
         run_info = status_response.json()
@@ -1097,7 +984,7 @@ def coach_by_riot_id(game_name: str, tag_line: str):
                     "message": "Databricks Job이 실패했습니다.",
                     "run_id": run_id,
                     "result_state": state.get("result_state"),
-                    "state_message": state.get("state_message")
+                    "state_message": state.get("state_message"),
                 }
             break
 
@@ -1106,7 +993,7 @@ def coach_by_riot_id(game_name: str, tag_line: str):
                 "status": "error",
                 "message": "Databricks Job 실행에 실패했습니다.",
                 "run_id": run_id,
-                "life_cycle_state": life_cycle_state
+                "life_cycle_state": life_cycle_state,
             }
 
         time.sleep(3)
@@ -1114,7 +1001,7 @@ def coach_by_riot_id(game_name: str, tag_line: str):
         return {
             "status": "error",
             "message": "Databricks Job 완료 대기 시간이 초과되었습니다.",
-            "run_id": run_id
+            "run_id": run_id,
         }
 
     # 5. Notebook의 dbutils.notebook.exit() 결과 가져오기
@@ -1125,7 +1012,7 @@ def coach_by_riot_id(game_name: str, tag_line: str):
         f"{DATABRICKS_HOST}/api/2.1/jobs/runs/get-output",
         headers=db_headers,
         params={"run_id": output_run_id},
-        timeout=30
+        timeout=30,
     )
 
     if output_response.status_code != 200:
@@ -1133,18 +1020,14 @@ def coach_by_riot_id(game_name: str, tag_line: str):
             "status": "error",
             "message": "Databricks Job 결과를 가져오지 못했습니다.",
             "run_id": run_id,
-            "detail": output_response.text
+            "detail": output_response.text,
         }
 
     output_data = output_response.json()
     result_text = output_data.get("notebook_output", {}).get("result")
 
     if not result_text:
-        return {
-            "status": "error",
-            "message": "Notebook 결과가 비어 있습니다.",
-            "run_id": run_id
-        }
+        return {"status": "error", "message": "Notebook 결과가 비어 있습니다.", "run_id": run_id}
 
     try:
         coaching_result = json.loads(result_text)
@@ -1153,7 +1036,7 @@ def coach_by_riot_id(game_name: str, tag_line: str):
             "status": "error",
             "message": "Notebook 결과 JSON을 해석하지 못했습니다.",
             "run_id": run_id,
-            "raw_result": result_text
+            "raw_result": result_text,
         }
 
     # Notebook 자체가 validation/error 상태를 반환했다면 성공으로 감싸지 않음
@@ -1166,7 +1049,7 @@ def coach_by_riot_id(game_name: str, tag_line: str):
             "tier": tier,
             "match_count": len(recent_games),
             "run_id": run_id,
-            "result": coaching_result
+            "result": coaching_result,
         }
 
     # 6. 최종 AI 코칭 결과를 FastAPI 응답으로 반환
@@ -1178,7 +1061,7 @@ def coach_by_riot_id(game_name: str, tag_line: str):
         "tier": tier,
         "match_count": len(recent_games),
         "run_id": run_id,
-        "result": coaching_result
+        "result": coaching_result,
     }
     _cache_set(
         _COACH_RESULT_CACHE,
@@ -1188,48 +1071,35 @@ def coach_by_riot_id(game_name: str, tag_line: str):
     )
     return result
 
+
 @app.get("/coach/{player_id}")
 def get_coaching(player_id: str):
 
-    headers = {
-        "Authorization": f"Bearer {DATABRICKS_TOKEN}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {DATABRICKS_TOKEN}", "Content-Type": "application/json"}
 
     # 1. Databricks Job 실행
     url = f"{DATABRICKS_HOST}/api/2.1/jobs/run-now"
 
-    payload = {
-        "job_id": int(DATABRICKS_JOB_ID),
-        "notebook_params": {
-            "player_id": player_id
-        }
-    }
+    payload = {"job_id": int(DATABRICKS_JOB_ID), "notebook_params": {"player_id": player_id}}
 
-    response = requests.post(
-        url,
-        headers=headers,
-        json=payload,
-        timeout=30
-    )
+    response = requests.post(url, headers=headers, json=payload, timeout=30)
 
     if response.status_code != 200:
         return {
             "status": "error",
             "message": "Databricks Job 실행 요청에 실패했습니다.",
-            "detail": response.json()
+            "detail": response.json(),
         }
 
     run_id = response.json()["run_id"]
 
     # 2. Job 완료 여부 확인
     while True:
-
         status_response = requests.get(
             f"{DATABRICKS_HOST}/api/2.1/jobs/runs/get",
             headers=headers,
             params={"run_id": run_id},
-            timeout=30
+            timeout=30,
         )
 
         if status_response.status_code != 200:
@@ -1237,7 +1107,7 @@ def get_coaching(player_id: str):
                 "status": "error",
                 "message": "Databricks Job 상태를 확인하지 못했습니다.",
                 "run_id": run_id,
-                "detail": status_response.json()
+                "detail": status_response.json(),
             }
 
         run_info = status_response.json()
@@ -1251,7 +1121,7 @@ def get_coaching(player_id: str):
             return {
                 "status": "error",
                 "message": "Databricks Job 실행에 실패했습니다.",
-                "run_id": run_id
+                "run_id": run_id,
             }
 
         time.sleep(3)
@@ -1264,7 +1134,7 @@ def get_coaching(player_id: str):
         f"{DATABRICKS_HOST}/api/2.1/jobs/runs/get-output",
         headers=headers,
         params={"run_id": task_run_id},
-        timeout=30
+        timeout=30,
     )
 
     if output_response.status_code != 200:
@@ -1273,16 +1143,15 @@ def get_coaching(player_id: str):
             "message": "Databricks Job 결과를 가져오지 못했습니다.",
             "run_id": run_id,
             "task_run_id": task_run_id,
-            "detail": output_response.json()
+            "detail": output_response.json(),
         }
 
     output_data = output_response.json()
 
-
-# dbutils.notebook.exit()으로 반환한 JSON 문자열
+    # dbutils.notebook.exit()으로 반환한 JSON 문자열
     result_text = output_data["notebook_output"]["result"]
 
-# JSON 문자열 → Python 객체
+    # JSON 문자열 → Python 객체
     coaching_result = json.loads(result_text)
 
     return coaching_result
@@ -1294,7 +1163,7 @@ def databricks_config_check():
         "host_loaded": bool(DATABRICKS_HOST),
         "token_loaded": bool(DATABRICKS_TOKEN),
         "job_id_loaded": bool(DATABRICKS_JOB_ID),
-        "riot_api_key_loaded": bool(RIOT_API_KEY)
+        "riot_api_key_loaded": bool(RIOT_API_KEY),
     }
 
 
@@ -1303,20 +1172,11 @@ def test_databricks_connection():
 
     url = f"{DATABRICKS_HOST}/api/2.1/jobs/list"
 
-    headers = {
-        "Authorization": f"Bearer {DATABRICKS_TOKEN}"
-    }
+    headers = {"Authorization": f"Bearer {DATABRICKS_TOKEN}"}
 
-    response = requests.get(
-        url,
-        headers=headers,
-        timeout=30
-    )
+    response = requests.get(url, headers=headers, timeout=30)
 
-    return {
-        "status_code": response.status_code,
-        "connected": response.status_code == 200
-    }
+    return {"status_code": response.status_code, "connected": response.status_code == 200}
 
 
 if FRONTEND_DIR.is_dir():

@@ -13,8 +13,7 @@ from pyspark.sql.window import Window
 
 CATALOG = "lol_insight"
 PARTICIPANT_SOURCE = (
-    "abfss://lol-data@5dt2ndteam3.dfs.core.windows.net/"
-    "raw/ml_match_participants.csv"
+    "abfss://lol-data@5dt2ndteam3.dfs.core.windows.net/raw/ml_match_participants.csv"
 )
 ITEM_ROLE_TABLE = f"{CATALOG}.gold.item_role_profile"
 TARGET_TABLE = f"{CATALOG}.gold.champion_profile_data_driven"
@@ -25,7 +24,7 @@ participants_df = (
     spark.read.option("header", True).option("inferSchema", True).csv(PARTICIPANT_SOURCE)
 )
 item_role_pd = spark.table(ITEM_ROLE_TABLE).toPandas()
-ITEM_ROLE_MAP = dict(zip(item_role_pd["item_id"], item_role_pd["roles"]))
+ITEM_ROLE_MAP = dict(zip(item_role_pd["item_id"], item_role_pd["roles"], strict=False))
 
 
 @F.udf(returnType=StringType())
@@ -48,16 +47,14 @@ def get_pure_item_role(item0, item1, item2, item3, item4, item5):
     return winners[0] if len(winners) == 1 else None
 
 
-role_df = (
-    participants_df.withColumn(
-        "inferred_role",
-        get_pure_item_role("item0", "item1", "item2", "item3", "item4", "item5"),
-    )
-    .filter(F.col("inferred_role").isNotNull())
-)
+role_df = participants_df.withColumn(
+    "inferred_role",
+    get_pure_item_role("item0", "item1", "item2", "item3", "item4", "item5"),
+).filter(F.col("inferred_role").isNotNull())
 role_window = Window.partitionBy("champion_name").orderBy(F.desc("count"), F.asc("inferred_role"))
 data_driven_roles = (
-    role_df.groupBy("champion_name", "inferred_role").count()
+    role_df.groupBy("champion_name", "inferred_role")
+    .count()
     .withColumn("rank", F.row_number().over(role_window))
     .filter(F.col("rank") == 1)
     .select("champion_name", F.col("inferred_role").alias("default_tactical_role"))
@@ -80,9 +77,7 @@ time_df = time_df.withColumn(
     .when(F.col("game_min") <= q4, "4_Mid-Late")
     .otherwise("5_Late"),
 )
-power_window = Window.partitionBy("champion_name").orderBy(
-    F.desc("win_rate"), F.asc("time_bin")
-)
+power_window = Window.partitionBy("champion_name").orderBy(F.desc("win_rate"), F.asc("time_bin"))
 peak_power_df = (
     time_df.groupBy("champion_name", "time_bin")
     .agg(F.mean("win_int").alias("win_rate"), F.count("*").alias("games"))
@@ -96,7 +91,9 @@ peak_power_df = (
 # vice versa. Missing defaults remain null and become UNKNOWN only at inference.
 final_profile = data_driven_roles.join(peak_power_df, on="champion_name", how="full")
 (
-    final_profile.write.format("delta").mode("overwrite")
-    .option("overwriteSchema", "true").saveAsTable(TARGET_TABLE)
+    final_profile.write.format("delta")
+    .mode("overwrite")
+    .option("overwriteSchema", "true")
+    .saveAsTable(TARGET_TABLE)
 )
 print(f"Created {TARGET_TABLE} ({final_profile.count()} champions)")

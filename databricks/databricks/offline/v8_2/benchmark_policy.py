@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-
 BENCHMARK_SCOPES = (
     "EXACT",
     "TIER_POSITION",
@@ -32,8 +31,7 @@ def select_benchmark(
     power_curve: str | None,
 ) -> Mapping[str, Any] | None:
     indexed = {
-        (row.get("team_position"), row.get("tier"), row.get("power_curve")): row
-        for row in rows
+        (row.get("team_position"), row.get("tier"), row.get("power_curve")): row for row in rows
     }
     for candidate_position, candidate_tier, candidate_curve, scope in benchmark_candidates(
         position, tier, power_curve

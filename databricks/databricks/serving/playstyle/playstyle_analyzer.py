@@ -15,7 +15,6 @@ from typing import Any
 
 import numpy as np
 
-
 TIER_BUCKET_MAP = {
     "IRON": "IRON_BRONZE",
     "BRONZE": "IRON_BRONZE",
@@ -65,7 +64,9 @@ COACHING_TONE = {
         "priority": 99,
         "label": "상대적 하위",
         "template": "{metric}이(가) 다른 지표에 비해 상대적으로 낮은 편입니다.",
-        "prompt_hint": "임계값 미달 항목이다. 약점으로 단정하지 말고 '굳이 꼽자면' 정도로만 말한다.",
+        "prompt_hint": (
+            "임계값 미달 항목이다. 약점으로 단정하지 말고 '굳이 꼽자면' 정도로만 말한다."
+        ),
     },
 }
 
@@ -223,13 +224,16 @@ class PlayStyleAnalyzer:
         beta = np.asarray(positions[position]["beta"], dtype=float)
         perf_features = residual.get("perf_features") or self.perf_features
         values = [base[f] for f in perf_features if f in base]
-        design = np.array([
-            1.0,
-            1.0 if _truthy_win(game.get("win")) else 0.0,
-            float(np.mean(values)) if values else 0.0,
-        ], dtype=float)
+        design = np.array(
+            [
+                1.0,
+                1.0 if _truthy_win(game.get("win")) else 0.0,
+                float(np.mean(values)) if values else 0.0,
+            ],
+            dtype=float,
+        )
         vector = vector - design @ beta
-        return vector - vector.mean()      # 합이 0 인 제약 복원 (학습과 동일)
+        return vector - vector.mean()  # 합이 0 인 제약 복원 (학습과 동일)
 
     def _assign_style(
         self,
@@ -247,9 +251,7 @@ class PlayStyleAnalyzer:
         rows = []
         for game in games:
             normalized = dict(game)
-            normalized["tier_bucket"] = (
-                game.get("tier_bucket") or tier_bucket(game.get("tier"))
-            )
+            normalized["tier_bucket"] = game.get("tier_bucket") or tier_bucket(game.get("tier"))
             # z_raw : 클리핑까지만 끝난 원본. 스타일 축은 학습과 같이 이 값에서 출발한다.
             # z     : 성과 축에서 승패 성분을 뺀 값. 강점/개선점·추세 계산은 이 값을 쓴다.
             z_raw = self._z(normalized)
@@ -258,16 +260,15 @@ class PlayStyleAnalyzer:
                 if feature in z_scores:
                     z_scores[feature] = z_scores[feature] - delta
             row = {**normalized, "z": z_scores, "z_raw": z_raw}
-            cluster, distances = self._assign_style(
-                normalized.get("team_position"), z_raw, row
-            )
+            cluster, distances = self._assign_style(normalized.get("team_position"), z_raw, row)
             row.update(cluster=cluster, dist=distances)
             rows.append(row)
         return rows
 
     def dominant_style(self, rows: list[dict[str, Any]], main_position: str) -> dict[str, Any]:
         selected = [
-            row for row in rows
+            row
+            for row in rows
             if row.get("team_position") == main_position and row.get("cluster") is not None
         ]
         if len(selected) < self.config["min_position_games"]:
@@ -277,7 +278,10 @@ class PlayStyleAnalyzer:
                 "styles": [],
                 "consistency": None,
                 "distribution": [],
-                "message": f"{main_position} 경기가 {len(selected)}판이라 대표 스타일을 판정할 수 없습니다.",
+                "message": (
+                    f"{main_position} 경기가 {len(selected)}판이라 "
+                    "대표 스타일을 판정할 수 없습니다."
+                ),
             }
 
         counts = Counter(row["cluster"] for row in selected)
@@ -285,7 +289,8 @@ class PlayStyleAnalyzer:
 
         def tie_break(cluster: int):
             distances = [
-                row["dist"][cluster] for row in selected
+                row["dist"][cluster]
+                for row in selected
                 if row.get("dist") and cluster in row["dist"]
             ]
             return -counts[cluster], float(np.mean(distances)) if distances else 0.0
@@ -300,7 +305,10 @@ class PlayStyleAnalyzer:
 
         if top_share >= self.config["dominant_share"]:
             status, picked = "single", ranked[:1]
-        elif second_share >= self.config["mixed_share"] and top_two_share >= self.config["mixed_top2"]:
+        elif (
+            second_share >= self.config["mixed_share"]
+            and top_two_share >= self.config["mixed_top2"]
+        ):
             status, picked = "mixed", ranked[:2]
         else:
             status, picked = "unstable", ranked[:2]
@@ -314,7 +322,11 @@ class PlayStyleAnalyzer:
                 for c in picked
             ],
             "distribution": [
-                {"style": label(c)["name"], "count": counts[c], "ratio": round(100 * counts[c] / total, 1)}
+                {
+                    "style": label(c)["name"],
+                    "count": counts[c],
+                    "ratio": round(100 * counts[c] / total, 1),
+                }
                 for c in ranked
             ],
         }
@@ -374,11 +386,10 @@ class PlayStyleAnalyzer:
 
         # 신뢰도 미달 지표는 계산은 그대로 두고 '후보 자격' 만 뺀다.
         # exclude 모드에서만 실제로 빠지고, flag 모드에서는 표시만 붙여 목록에 남긴다.
-        low_reliability_keys = [
-            feature for feature in scores if detail[feature]["low_reliability"]
-        ]
+        low_reliability_keys = [feature for feature in scores if detail[feature]["low_reliability"]]
         eligible = {
-            feature for feature in scores
+            feature
+            for feature in scores
             if low_mode == "flag" or not detail[feature]["low_reliability"]
         }
 
@@ -406,11 +417,13 @@ class PlayStyleAnalyzer:
             }
 
         strengths = [
-            item(feature, score) for feature, score in ranked
+            item(feature, score)
+            for feature, score in ranked
             if score >= self.config["strength_threshold"]
         ][:3]
         improvements = [
-            item(feature, score) for feature, score in reversed(ranked)
+            item(feature, score)
+            for feature, score in reversed(ranked)
             if score <= -self.config["improvement_threshold"]
             and detail[feature]["finding_tag"] != "structural"
         ][:3]
@@ -451,7 +464,8 @@ class PlayStyleAnalyzer:
             collection.sort(key=lambda finding: (finding["priority"], -abs(finding["score"])))
 
         real_improvements = [
-            finding for finding in improvements
+            finding
+            for finding in improvements
             if not finding["is_relative"] and not finding["low_reliability"]
         ]
         primary_pool = real_improvements or improvements
@@ -469,7 +483,8 @@ class PlayStyleAnalyzer:
             }
 
         excluded = [
-            labels.get(feature, feature) for feature, score in ranked
+            labels.get(feature, feature)
+            for feature, score in ranked
             if score <= -self.config["improvement_threshold"]
             and detail[feature]["finding_tag"] == "structural"
         ]
@@ -511,7 +526,9 @@ class PlayStyleAnalyzer:
                 "status": "insufficient",
                 "changes": [],
                 "window": None,
-                "note": f"추세 비교에는 주 포지션 {minimum}경기가 필요합니다 (현재 {len(ordered)}경기).",
+                "note": (
+                    f"추세 비교에는 주 포지션 {minimum}경기가 필요합니다 (현재 {len(ordered)}경기)."
+                ),
             }
 
         half = len(ordered) // 2
@@ -523,17 +540,19 @@ class PlayStyleAnalyzer:
             after = [row["z"][feature] for row in recent if feature in row["z"]]
             if not before or not after:
                 continue
-            delta = (
-                float(np.median(after)) - float(np.median(before))
-            ) * self.artifact["reliability"].get(feature, 1.0)
+            delta = (float(np.median(after)) - float(np.median(before))) * self.artifact[
+                "reliability"
+            ].get(feature, 1.0)
             if abs(delta) >= threshold:
-                changes.append({
-                    "metric": self.artifact["feature_labels"].get(feature, feature),
-                    "key": feature,
-                    "delta": round(delta, 2),
-                    "direction": "up" if delta > 0 else "down",
-                    "significant": True,
-                })
+                changes.append(
+                    {
+                        "metric": self.artifact["feature_labels"].get(feature, feature),
+                        "key": feature,
+                        "delta": round(delta, 2),
+                        "direction": "up" if delta > 0 else "down",
+                        "significant": True,
+                    }
+                )
 
         return {
             "status": "changed" if changes else "stable",
@@ -579,7 +598,9 @@ class PlayStyleAnalyzer:
             "position_mix": dict(position_counts),
             "position_focus_ratio": round(main_games / len(valid), 2),
             "tier_buckets": dict(Counter(row["tier_bucket"] for row in valid)),
-            "win_rate": round(100 * sum(_truthy_win(row.get("win")) for row in valid) / len(valid), 1),
+            "win_rate": round(
+                100 * sum(_truthy_win(row.get("win")) for row in valid) / len(valid), 1
+            ),
             "coaching_mode": "consistency" if style["status"] == "unstable" else "style",
             "play_style": style,
             "strengths": profile["strengths"],
@@ -635,18 +656,25 @@ def build_coaching_prompt(result: dict[str, Any], player_name: str = "플레이�
     ]
 
     if not payload.get("has_improvements"):
-        rules.append("뚜렷한 개선점이 없으므로 개선점 3개를 만들지 마라. 있으면 상대적 제안 1개만 완곡하게 말하라.")
+        rules.append(
+            "뚜렷한 개선점이 없으므로 개선점 3개를 만들지 마라. "
+            "있으면 상대적 제안 1개만 완곡하게 말하라."
+        )
     else:
         rules.append("개선점은 improvements에 있는 실제 항목만 사용하고 최대 3개로 제한하라.")
 
     if payload.get("play_style", {}).get("status") == "unstable":
-        rules.append("대표 스타일을 단정하지 마라. 경기별 스타일 변동과 플레이 일관성을 핵심 주제로 코칭하라.")
+        rules.append(
+            "대표 스타일을 단정하지 마라. "
+            "경기별 스타일 변동과 플레이 일관성을 핵심 주제로 코칭하라."
+        )
     else:
         rules.append("play_style에 있는 대표 스타일을 강점과 개선점의 맥락으로 활용하라.")
 
     return (
         f"{player_name}님의 최근 LoL 플레이를 한국어로 코칭해라.\n"
-        "구성: 플레이 스타일 요약 → 근거 있는 강점 → 패배/변동 패턴 → 가장 중요한 개선 포인트 → 한 줄 요약.\n"
+        "구성: 플레이 스타일 요약 → 근거 있는 강점 → 패배/변동 패턴 → "
+        "가장 중요한 개선 포인트 → 한 줄 요약.\n"
         "규칙:\n- " + "\n- ".join(rules) + "\n\n"
         "분석 JSON:\n" + json.dumps(payload, ensure_ascii=False, indent=2)
     )

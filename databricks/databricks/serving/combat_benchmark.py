@@ -20,9 +20,7 @@ def build_combat_benchmark_context(
     priority_candidates: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     """Build auxiliary gaps, including deaths only when real stats exist."""
-    candidate_by_key = {
-        str(candidate.get("key")): candidate for candidate in priority_candidates
-    }
+    candidate_by_key = {str(candidate.get("key")): candidate for candidate in priority_candidates}
     gaps = {
         key: (candidate_by_key.get(key) or {}).get("gap_z")
         for key in (
@@ -33,9 +31,7 @@ def build_combat_benchmark_context(
         )
     }
 
-    benchmark = select_benchmark(
-        benchmark_rows, team_position, tier, power_curve
-    )
+    benchmark = select_benchmark(benchmark_rows, team_position, tier, power_curve)
     death_values = [
         float(game["deaths"])
         for game in games

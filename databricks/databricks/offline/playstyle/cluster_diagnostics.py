@@ -46,7 +46,7 @@ def soft_membership(distances: np.ndarray, temperature: float) -> np.ndarray:
     소속 확률로 합산하면 '경계에 걸친 경기'가 절반씩 기여하므로 훨씬 안정적이다.
     """
     temp = max(float(temperature), 1e-6)
-    logits = -(distances ** 2) / (2 * temp ** 2)
+    logits = -(distances**2) / (2 * temp**2)
     logits = logits - logits.max(axis=-1, keepdims=True)
     weights = np.exp(logits)
     return weights / weights.sum(axis=-1, keepdims=True)
@@ -61,14 +61,16 @@ def assignment_quality(X: np.ndarray, centers: np.ndarray) -> pd.DataFrame:
     d1 = dist[np.arange(len(X)), first]
     d2 = dist[np.arange(len(X)), second]
     sep = centroid_separation(centers)
-    return pd.DataFrame({
-        "cluster": first,
-        "runner_up": second,
-        "d1": d1,
-        "d2": d2,
-        "margin": d2 - d1,
-        "margin_norm": (d2 - d1) / sep,
-    })
+    return pd.DataFrame(
+        {
+            "cluster": first,
+            "runner_up": second,
+            "d1": d1,
+            "d2": d2,
+            "margin": d2 - d1,
+            "margin_norm": (d2 - d1) / sep,
+        }
+    )
 
 
 # ----------------------------------------------------------------------
@@ -87,15 +89,15 @@ def cluster_axis_table(
     rows = []
     for cluster, center in enumerate(centers):
         order = np.argsort(-np.abs(center))[:top_n]
-        rows.append({
-            "cluster": cluster,
-            "축_요약": " / ".join(
-                f"{style_features[i]} {center[i]:+.2f}" for i in order
-            ),
-            "지배축": style_features[int(order[0])],
-            "지배축_값": round(float(center[order[0]]), 3),
-            "중심_노름": round(float(np.linalg.norm(center)), 3),
-        })
+        rows.append(
+            {
+                "cluster": cluster,
+                "축_요약": " / ".join(f"{style_features[i]} {center[i]:+.2f}" for i in order),
+                "지배축": style_features[int(order[0])],
+                "지배축_값": round(float(center[order[0]]), 3),
+                "중심_노름": round(float(np.linalg.norm(center)), 3),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -121,22 +123,26 @@ def skill_leak_check(
       0.05 ~ 0.15   : 약한 누수
       > 0.15        : 군집이 사실상 실력 등급 (STYLE_FEATURES 재검토 필요)
     """
+
     def eta(cols):
         if not cols:
             return None
         level = sub[cols].mean(axis=1)
         grand = level.mean()
         between = sum(
-            len(g) * (level[g.index].mean() - grand) ** 2
-            for _, g in sub.groupby("cluster")
+            len(g) * (level[g.index].mean() - grand) ** 2 for _, g in sub.groupby("cluster")
         )
         total = float(((level - grand) ** 2).sum())
         return float(between / total) if total > 0 else 0.0
 
     all_cols = [f"z_{f}" for f in perf_features if f"z_{f}" in sub.columns]
     if not all_cols or sub["cluster"].nunique() < 2:
-        return {"eta_squared": None, "eta_squared_all": None,
-                "verdict": "판정 불가", "by_cluster": {}}
+        return {
+            "eta_squared": None,
+            "eta_squared_all": None,
+            "verdict": "판정 불가",
+            "by_cluster": {},
+        }
 
     clean_cols = [c for c in all_cols if c[2:] not in DERIVED_PERF]
     eta2_all = eta(all_cols)
@@ -157,8 +163,7 @@ def skill_leak_check(
         "eta_squared_all": round(eta2_all, 4) if eta2_all is not None else None,
         "verdict": verdict,
         "by_cluster": {
-            int(c): round(float(level[g.index].mean()), 3)
-            for c, g in sub.groupby("cluster")
+            int(c): round(float(level[g.index].mean()), 3) for c, g in sub.groupby("cluster")
         },
     }
 
@@ -196,22 +201,29 @@ def build_position_report(
         win = sub.loc[mask, "win"]
         win_rate = (
             float(pd.Series(win).astype(str).str.lower().isin(["true", "1", "1.0"]).mean())
-            if len(win) else float("nan")
+            if len(win)
+            else float("nan")
         )
-        rows.append({
-            "cluster": cluster,
-            "스타일": labels.get(cluster, {}).get("name", "-") if labels else "-",
-            "지배축": axis.loc[cluster, "지배축"],
-            "축_요약": axis.loc[cluster, "축_요약"],
-            "비중": round(share, 3),
-            "n": int(mask.sum()),
-            "승률": round(win_rate, 3),
-            "평균거리": round(float(q["d1"].mean()), 3) if len(q) else None,
-            "거리_p90": round(float(q["d1"].quantile(0.90)), 3) if len(q) else None,
-            "평균margin": round(float(q["margin_norm"].mean()), 3) if len(q) else None,
-            "애매경기비율": round(float((q["margin_norm"] < ambiguous_cut).mean()), 3) if len(q) else None,
-            "평균소속확률": round(float(membership[mask.to_numpy(), cluster].mean()), 3) if mask.any() else None,
-        })
+        rows.append(
+            {
+                "cluster": cluster,
+                "스타일": labels.get(cluster, {}).get("name", "-") if labels else "-",
+                "지배축": axis.loc[cluster, "지배축"],
+                "축_요약": axis.loc[cluster, "축_요약"],
+                "비중": round(share, 3),
+                "n": int(mask.sum()),
+                "승률": round(win_rate, 3),
+                "평균거리": round(float(q["d1"].mean()), 3) if len(q) else None,
+                "거리_p90": round(float(q["d1"].quantile(0.90)), 3) if len(q) else None,
+                "평균margin": round(float(q["margin_norm"].mean()), 3) if len(q) else None,
+                "애매경기비율": round(float((q["margin_norm"] < ambiguous_cut).mean()), 3)
+                if len(q)
+                else None,
+                "평균소속확률": round(float(membership[mask.to_numpy(), cluster].mean()), 3)
+                if mask.any()
+                else None,
+            }
+        )
 
     profile = pd.DataFrame(rows)
 
@@ -254,8 +266,10 @@ def print_report(report: dict[str, Any]) -> None:
     if report["label_mismatch_rows"]:
         print(f"[경고] 저장된 cluster 와 재계산 결과가 {report['label_mismatch_rows']}행 불일치")
     leak = report["skill_leak"]
-    print(f"실력 누수 eta^2={leak['eta_squared']} → {leak['verdict']}"
-          f"  (파생 지표 포함 시 {leak['eta_squared_all']})")
+    print(
+        f"실력 누수 eta^2={leak['eta_squared']} → {leak['verdict']}"
+        f"  (파생 지표 포함 시 {leak['eta_squared_all']})"
+    )
     print(report["cluster_profile"].to_string(index=False))
     print("\n[군집별 성과 축 중앙값]")
     print(report["perf_median"].to_string())
@@ -276,9 +290,14 @@ def build_cluster_report(
     reports = {}
     for position, model in style_models.items():
         report = build_position_report(
-            pdf, position, model.cluster_centers_,
-            style_features, perf_features, s_cols,
-            (style_labels or {}).get(position), ambiguous_cut,
+            pdf,
+            position,
+            model.cluster_centers_,
+            style_features,
+            perf_features,
+            s_cols,
+            (style_labels or {}).get(position),
+            ambiguous_cut,
         )
         reports[position] = report
         if verbose:
@@ -306,7 +325,9 @@ def build_explain_artifact(
                 "mean_dist": float(row["평균거리"]) if row["평균거리"] is not None else None,
                 "dist_p90": float(row["거리_p90"]) if row["거리_p90"] is not None else None,
                 "mean_margin": float(row["평균margin"]) if row["평균margin"] is not None else None,
-                "ambiguous_rate": float(row["애매경기비율"]) if row["애매경기비율"] is not None else None,
+                "ambiguous_rate": float(row["애매경기비율"])
+                if row["애매경기비율"] is not None
+                else None,
                 "dominant_axis": row["지배축"],
                 "axis_summary": row["축_요약"],
             }

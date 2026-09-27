@@ -45,12 +45,12 @@
 # ============================================================
 BASE = "abfss://lol-data@5dt2ndteam3.dfs.core.windows.net/"
 
-PATH_SILVER     = BASE + "silver/match_participants"
+PATH_SILVER = BASE + "silver/match_participants"
 PATH_MODEL_FEAT = BASE + "gold/model_features"
-PATH_POS_STATS  = BASE + "gold/position_feature_stats"
-PATH_CLUSTERS   = BASE + "gold/play_style_clusters"
-PATH_STYLE_DEF  = BASE + "gold/play_style_definitions"
-PATH_SERVING    = BASE + "models/serving/style_model.json"
+PATH_POS_STATS = BASE + "gold/position_feature_stats"
+PATH_CLUSTERS = BASE + "gold/play_style_clusters"
+PATH_STYLE_DEF = BASE + "gold/play_style_definitions"
+PATH_SERVING = BASE + "models/serving/style_model.json"
 
 BRONZE_TABLE = "lol_insight.bronze.match_participants"
 
@@ -87,20 +87,20 @@ PERF_FAMILIES = {
 
 POSITIONS = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]
 
-Z_CLIP             = 3.0
-ANALYSIS_GAMES     = 10
-MIN_GAMES          = 5
+Z_CLIP = 3.0
+ANALYSIS_GAMES = 10
+MIN_GAMES = 5
 MIN_POSITION_GAMES = 5
-MIN_DURATION       = 900
+MIN_DURATION = 900
 
 # FastAPI의 현재 10경기 handoff와 calibration을 일치시키기 위해 10으로 고정한다.
 # reliability와 threshold 진단은 이 값으로 노트북을 다시 실행해 산출해야 하며,
 # 이전 15경기 artifact를 재사용하면 안 된다.
 # 임계값은 표본 수가 바뀌면 분포도 바뀌므로 Cell 25 권고로 재확인한다.
-STRENGTH_THRESHOLD    = 0.35
+STRENGTH_THRESHOLD = 0.35
 IMPROVEMENT_THRESHOLD = 0.30
 
-ALWAYS_SHOW_STRENGTH    = True
+ALWAYS_SHOW_STRENGTH = True
 ALWAYS_SHOW_IMPROVEMENT = True
 
 # ------------------------------------------------------------
@@ -147,8 +147,8 @@ TREND_THRESHOLD = 0.7
 
 # 전체 unstable 비율이 17%였으므로 0.40 유지. 40% 초과 시 0.35 권고를 출력한다.
 DOMINANT_SHARE = 0.40
-MIXED_SHARE    = 0.30
-MIXED_TOP2     = 0.60
+MIXED_SHARE = 0.30
+MIXED_TOP2 = 0.60
 
 # 군집별 성과 중앙값이 이 값을 넘어야 finding_tag 가 neutral 이 아니게 된다.
 #   b >  CUT → core_strength / core_weakness
@@ -173,8 +173,8 @@ PERF_RESIDUAL_CUT = 0.40
 #   확인할 수 있다. 나중에 범위를 넓히려면 None 으로 되돌리면 된다.
 PERF_RESIDUAL_FEATURES = ["objective_damage_per_min"]
 
-SEED               = 42
-TEST_GAMES         = 10
+SEED = 42
+TEST_GAMES = 10
 
 print("스타일 축:", len(STYLE_FEATURES), "/ 성과 축:", len(PERF_FEATURES))
 print("전체 사용 피처:", len(ALL_FEATURES))
@@ -214,13 +214,13 @@ def _candidate_dirs():
             found.append(path)
 
     add(MODULE_DIR)
-    add(os.getcwd())                       # Databricks 노트북의 작업 폴더 = 노트북 폴더
-    try:                                   # 노트북 경로 API (런타임에 따라 없을 수 있다)
+    add(os.getcwd())  # Databricks 노트북의 작업 폴더 = 노트북 폴더
+    try:  # 노트북 경로 API (런타임에 따라 없을 수 있다)
         _ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
         add(os.path.dirname("/Workspace" + _ctx.notebookPath().get()))
     except Exception:
         pass
-    add(os.path.dirname(os.getcwd()))      # 한 단계 위 폴더
+    add(os.path.dirname(os.getcwd()))  # 한 단계 위 폴더
     return found
 
 
@@ -233,12 +233,15 @@ MODULE_PATH = next((d for d in _candidate_dirs() if _has_all(d, REQUIRED_MODULES
 if MODULE_PATH:
     if MODULE_PATH not in sys.path:
         sys.path.insert(0, MODULE_PATH)
-    missing_optional = [m for m in OPTIONAL_MODULES
-                        if not os.path.exists(os.path.join(MODULE_PATH, f"{m}.py"))]
+    missing_optional = [
+        m for m in OPTIONAL_MODULES if not os.path.exists(os.path.join(MODULE_PATH, f"{m}.py"))
+    ]
     print(f"모듈 경로: {MODULE_PATH}")
     if missing_optional:
-        print(f"[참고] 선택 모듈 없음: {missing_optional} — 04 실행에는 지장 없지만 "
-              "FastAPI 배포에는 필요하다.")
+        print(
+            f"[참고] 선택 모듈 없음: {missing_optional} — 04 실행에는 지장 없지만 "
+            "FastAPI 배포에는 필요하다."
+        )
 else:
     print("[실패] cluster_diagnostics.py / playstyle_explain_v2.py 를 찾지 못했습니다.")
     print("       아래에서 실제로 무엇이 올라가 있는지 확인하세요.\n")
@@ -251,28 +254,33 @@ else:
         py_files = [e for e in entries if e.endswith(".py")]
         print(f"  {directory}")
         print(f"    .py 파일: {py_files if py_files else '없음'}")
-        similar = [e for e in entries
-                   if not e.endswith(".py")
-                   and any(key in e for key in ("cluster", "playstyle"))]
+        similar = [
+            e
+            for e in entries
+            if not e.endswith(".py") and any(key in e for key in ("cluster", "playstyle"))
+        ]
         if similar:
             print(f"    확장자 없는 비슷한 이름: {similar}")
             print("      → Auto-detect 로 올려 노트북으로 변환됐을 가능성이 높다.")
     print("\n  확인할 것")
     print("   1. 세 파일을 이 노트북과 같은 폴더에 올렸는가")
     print("   2. Import 형식을 'File' 로 했는가 (Auto-detect 는 노트북으로 바꿔 버린다)")
-    print("   3. 파일명이 정확한가 — 다운로드하면 'cluster_diagnostics__1_.py' 처럼 바뀌는 일이 잦다")
+    print(
+        "   3. 파일명이 정확한가 — 다운로드하면 'cluster_diagnostics__1_.py' 처럼 바뀌는 일이 잦다"
+    )
     print("   4. 그래도 안 되면 위 MODULE_DIR 에 폴더 경로를 직접 넣고 이 셀을 다시 실행한다")
     raise ModuleNotFoundError(
         "cluster_diagnostics / playstyle_explain_v2 를 찾지 못했습니다. 위 안내를 확인하세요."
     )
 
-%reload_ext autoreload
-%autoreload 2
+# MAGIC %reload_ext autoreload
+# MAGIC %autoreload 2
 
 import inspect
-from cluster_diagnostics import build_cluster_report, build_explain_artifact
+
 import cluster_diagnostics as _cd
-from playstyle_explain_v2 import make_explainable, build_coaching_prompt_v2
+from cluster_diagnostics import build_cluster_report, build_explain_artifact
+from playstyle_explain_v2 import build_coaching_prompt_v2, make_explainable
 
 # 옛 버전이 캐시에 남아 있으면 진단 결과가 그대로라 혼동하기 쉽다.
 assert "exclude_derived" in inspect.signature(_cd.skill_leak_check).parameters, (
@@ -284,12 +292,29 @@ print("설명 모듈 로드 완료")
 # COMMAND ----------
 
 df_silver = spark.read.format("delta").load(PATH_SILVER)
-need = ["match_id","player_id","game_start_datetime","team_position",
-        "champion_id","champion_name","patch_version","win",
-        "kills","deaths","assists",
-        "kda","kill_participation","cs_per_min","gold_per_min",
-        "damage_per_min","damage_taken_per_min","vision_score_per_min",
-        "objective_damage_per_min","damage_share","gold_share"]
+need = [
+    "match_id",
+    "player_id",
+    "game_start_datetime",
+    "team_position",
+    "champion_id",
+    "champion_name",
+    "patch_version",
+    "win",
+    "kills",
+    "deaths",
+    "assists",
+    "kda",
+    "kill_participation",
+    "cs_per_min",
+    "gold_per_min",
+    "damage_per_min",
+    "damage_taken_per_min",
+    "vision_score_per_min",
+    "objective_damage_per_min",
+    "damage_share",
+    "gold_share",
+]
 missing = [c for c in need if c not in df_silver.columns]
 print("없는 컬럼:", missing)
 print("tier 있음:", "tier" in df_silver.columns)
@@ -317,23 +342,38 @@ print("tier 있음:", "tier" in df_silver.columns)
 # ============================================================
 # 01. 데이터 로드 (솔로랭크만 + 티어 컬럼 보존)
 # ============================================================
-from pyspark.sql import functions as F, Window
-import pandas as pd
-import numpy as np
 import json
-import math
+
+import numpy as np
+import pandas as pd
+from pyspark.sql import functions as F
 
 df_silver = spark.read.format("delta").load(PATH_SILVER)
 
 BASE_COLS = [
-    "match_id", "player_id", "game_start_datetime", "team_position",
-    "champion_id", "champion_name", "patch_version", "win",
-    "kills", "deaths", "assists",
+    "match_id",
+    "player_id",
+    "game_start_datetime",
+    "team_position",
+    "champion_id",
+    "champion_name",
+    "patch_version",
+    "win",
+    "kills",
+    "deaths",
+    "assists",
 ]
 RAW_FEATURES = [
-    "kda", "kill_participation", "cs_per_min", "gold_per_min",
-    "damage_per_min", "damage_taken_per_min", "vision_score_per_min",
-    "objective_damage_per_min", "damage_share", "gold_share",
+    "kda",
+    "kill_participation",
+    "cs_per_min",
+    "gold_per_min",
+    "damage_per_min",
+    "damage_taken_per_min",
+    "vision_score_per_min",
+    "objective_damage_per_min",
+    "damage_share",
+    "gold_share",
     "vision_wards_bought_in_game",
 ]
 
@@ -346,11 +386,14 @@ if missing_in_silver:
     raise ValueError(f"silver 에 없는 컬럼: {missing_in_silver}")
 
 # 중요: tier가 silver에 있어도 select에서 빼면 다음 셀에서 찾을 수 없다.
-TIER_COLS = ["tier", "tier_source"] if "tier_source" in df_silver.columns else (["tier"] if "tier" in df_silver.columns else [])
+TIER_COLS = (
+    ["tier", "tier_source"]
+    if "tier_source" in df_silver.columns
+    else (["tier"] if "tier" in df_silver.columns else [])
+)
 
 df_model = (
-    df_silver
-    .filter(F.col("queue_id") == 420)
+    df_silver.filter(F.col("queue_id") == 420)
     .select(*BASE_COLS, *TIER_COLS, *RAW_FEATURES)
     .filter(F.col("team_position").isin(POSITIONS))
     .withColumn(
@@ -372,12 +415,13 @@ print("tier 컬럼 보존:", "tier" in df_model.columns)
 # kda 가 (k+a)/deaths 로 계산됐다면 deaths=0 인 경기에서 inf 가 됩니다.
 # inf 가 하나라도 있으면 stddev 가 NaN 이 되어 Z-score 전체가 무너집니다.
 
+
 def bad_count(c):
     col = F.col(c).cast("double")
     return F.sum(
-        F.when(col.isNull() | F.isnan(col) | (F.abs(col) == float("inf")), 1)
-         .otherwise(0)
+        F.when(col.isNull() | F.isnan(col) | (F.abs(col) == float("inf")), 1).otherwise(0)
     ).alias(c)
+
 
 display(
     df_model.select(
@@ -399,16 +443,14 @@ display(
 for c in ALL_FEATURES:
     col = F.col(c).cast("double")
     df_model = df_model.withColumn(
-        c,
-        F.when(col.isNull() | F.isnan(col) | (F.abs(col) == float("inf")), None)
-         .otherwise(col)
+        c, F.when(col.isNull() | F.isnan(col) | (F.abs(col) == float("inf")), None).otherwise(col)
     )
 
 # 피처가 하나라도 비면 Z-score 프로필이 왜곡되므로 해당 행 제외
 before = df_model.count()
 df_model = df_model.dropna(subset=ALL_FEATURES)
 after = df_model.count()
-print(f"정리 후 행: {after}  (제외 {before - after}행, {100*(before-after)/before:.2f}%)")
+print(f"정리 후 행: {after}  (제외 {before - after}행, {100 * (before - after) / before:.2f}%)")
 
 # COMMAND ----------
 
@@ -430,13 +472,13 @@ else:
 dur_sdf = dur_sdf.dropDuplicates(["match_id", "player_id"])
 
 before = df_model.count()
-df_model = (
-    df_model
-    .join(dur_sdf, on=["match_id", "player_id"], how="left")
-    .filter(F.col(DUR_COL).isNotNull() & (F.col(DUR_COL) >= MIN_DURATION))
+df_model = df_model.join(dur_sdf, on=["match_id", "player_id"], how="left").filter(
+    F.col(DUR_COL).isNotNull() & (F.col(DUR_COL) >= MIN_DURATION)
 )
 after = df_model.count()
-print(f"경기 시간 필터: {before} → {after} (제외 {before - after}행, {100*(before-after)/before:.2f}%)")
+print(
+    f"경기 시간 필터: {before} → {after} (제외 {before - after}행, {100 * (before - after) / before:.2f}%)"
+)
 
 display(df_model.groupBy("team_position").count().orderBy("team_position"))
 
@@ -449,20 +491,26 @@ display(df_model.groupBy("team_position").count().orderBy("team_position"))
 # 추론 시 입력 tier도 같은 버킷 규칙을 사용해야 한다.
 
 TIER_BUCKET_MAP = {
-    "IRON": "IRON_BRONZE", "BRONZE": "IRON_BRONZE",
-    "SILVER": "SILVER", "GOLD": "GOLD", "PLATINUM": "PLATINUM",
+    "IRON": "IRON_BRONZE",
+    "BRONZE": "IRON_BRONZE",
+    "SILVER": "SILVER",
+    "GOLD": "GOLD",
+    "PLATINUM": "PLATINUM",
     "EMERALD": "EMERALD",
-    "DIAMOND": "DIAMOND_PLUS", "MASTER": "DIAMOND_PLUS",
-    "GRANDMASTER": "DIAMOND_PLUS", "CHALLENGER": "DIAMOND_PLUS",
+    "DIAMOND": "DIAMOND_PLUS",
+    "MASTER": "DIAMOND_PLUS",
+    "GRANDMASTER": "DIAMOND_PLUS",
+    "CHALLENGER": "DIAMOND_PLUS",
 }
 
-HAS_TIER = "tier" in df_model.columns and df_model.filter(F.col("tier").isNotNull()).limit(1).count() > 0
+HAS_TIER = (
+    "tier" in df_model.columns and df_model.filter(F.col("tier").isNotNull()).limit(1).count() > 0
+)
 
 if HAS_TIER:
-    mapping = F.create_map(*[
-        x for tier, bucket in TIER_BUCKET_MAP.items()
-        for x in (F.lit(tier), F.lit(bucket))
-    ])
+    mapping = F.create_map(
+        *[x for tier, bucket in TIER_BUCKET_MAP.items() for x in (F.lit(tier), F.lit(bucket))]
+    )
     df_model = df_model.withColumn(
         "tier_bucket",
         F.coalesce(mapping[F.upper(F.trim(F.col("tier")))], F.lit("ALL")),
@@ -495,7 +543,7 @@ display(df_model.groupBy(*GROUP_KEYS).count().orderBy(*GROUP_KEYS))
 # 기존: mean / std  →  수정: median / (IQR / 1.349)
 # LoL 지표는 오른쪽 꼬리가 길어 평균·표준편차 기준 Z 는 한쪽으로 쏠립니다.
 
-MIN_GROUP_N = 300   # 이보다 표본이 적으면 포지션 전체 통계로 폴백
+MIN_GROUP_N = 300  # 이보다 표본이 적으면 포지션 전체 통계로 폴백
 
 stat_exprs = []
 for c in ALL_FEATURES:
@@ -509,7 +557,8 @@ for c in ALL_FEATURES:
     ]
 
 wide_group = df_model.groupBy(*GROUP_KEYS).agg(*stat_exprs).toPandas()
-wide_pos   = df_model.groupBy("team_position").agg(*stat_exprs).toPandas()
+wide_pos = df_model.groupBy("team_position").agg(*stat_exprs).toPandas()
+
 
 def to_long(pdf, has_tier):
     rows = []
@@ -518,23 +567,26 @@ def to_long(pdf, has_tier):
             iqr = r[f"{c}__p75"] - r[f"{c}__p25"]
             sigma = iqr / 1.349 if (pd.notna(iqr) and iqr > 0) else r[f"{c}__std"]
             if not pd.notna(sigma) or sigma <= 0:
-                sigma = 1.0          # 분산이 0 인 지표 — Z 는 항상 0 이 됨
-            rows.append({
-                "team_position": r["team_position"],
-                "tier_bucket": r["tier_bucket"] if has_tier else "__FALLBACK__",
-                "feature": c,
-                "center": float(r[f"{c}__p50"]),
-                "sigma": float(sigma),
-                "25percent": float(r[f"{c}__p25"]),
-                "75percent": float(r[f"{c}__p75"]),
-                "mean": float(r[f"{c}__mean"]),
-                "std": float(r[f"{c}__std"]) if pd.notna(r[f"{c}__std"]) else None,
-                "count": int(r[f"{c}__n"]),
-            })
+                sigma = 1.0  # 분산이 0 인 지표 — Z 는 항상 0 이 됨
+            rows.append(
+                {
+                    "team_position": r["team_position"],
+                    "tier_bucket": r["tier_bucket"] if has_tier else "__FALLBACK__",
+                    "feature": c,
+                    "center": float(r[f"{c}__p50"]),
+                    "sigma": float(sigma),
+                    "25percent": float(r[f"{c}__p25"]),
+                    "75percent": float(r[f"{c}__p75"]),
+                    "mean": float(r[f"{c}__mean"]),
+                    "std": float(r[f"{c}__std"]) if pd.notna(r[f"{c}__std"]) else None,
+                    "count": int(r[f"{c}__n"]),
+                }
+            )
     return pd.DataFrame(rows)
 
+
 stats_group = to_long(wide_group, True)
-stats_pos   = to_long(wide_pos, False)
+stats_pos = to_long(wide_pos, False)
 
 # 표본이 부족한 (포지션, 티어) 조합은 포지션 전체 통계로 대체
 thin = stats_group["count"] < MIN_GROUP_N
@@ -577,9 +629,9 @@ for c in ALL_FEATURES:
 
 df_z = df_z.drop(*[f"{c}__{s}" for c in ALL_FEATURES for s in ("center", "sigma")])
 
-Z_ALL   = [f"z_{c}" for c in ALL_FEATURES]
+Z_ALL = [f"z_{c}" for c in ALL_FEATURES]
 Z_STYLE = [f"z_{c}" for c in STYLE_FEATURES]
-Z_PERF  = [f"z_{c}" for c in PERF_FEATURES]
+Z_PERF = [f"z_{c}" for c in PERF_FEATURES]
 
 print("Z 적용 행:", df_z.count())
 display(df_z.select("team_position", "champion_name", *Z_STYLE).limit(10))
@@ -623,7 +675,7 @@ if len(player_stats) >= 30:
     m = len(n)
     N = n.sum()
     # 불균형 설계 보정 계수 (단순 평균보다 정확)
-    n0 = (N - (n ** 2).sum() / N) / (m - 1)
+    n0 = (N - (n**2).sum() / N) / (m - 1)
 
     for c in ALL_FEATURES:
         within = player_stats[f"z_{c}__v"].mean()
@@ -631,10 +683,15 @@ if len(player_stats) >= 30:
         icc = between / (between + within) if (between + within) > 0 else 0.0
         rel = (ANALYSIS_GAMES * icc) / (1 + (ANALYSIS_GAMES - 1) * icc) if icc > 0 else 0.0
         reliability[c] = float(rel)
-        icc_table.append({
-            "feature": c, "icc": round(icc, 4), REL_COL: round(rel, 4),
-            "within_var": round(within, 4), "between_var": round(between, 4),
-        })
+        icc_table.append(
+            {
+                "feature": c,
+                "icc": round(icc, 4),
+                REL_COL: round(rel, 4),
+                "within_var": round(within, 4),
+                "between_var": round(between, 4),
+            }
+        )
     print(f"보정 계수 n0 = {n0:.2f} (평균 경기 수 {n.mean():.2f})")
 else:
     print("[경고] 다경기 플레이어가 부족해 신뢰도를 1.0 으로 둡니다.")
@@ -677,8 +734,9 @@ display(icc_pdf)
 # MIN_RELIABILITY 를 확정하기 전에 실제 ICC 표로 생존 지표 수를 확인한다.
 
 rel_table = (
-    pd.DataFrame([{"feature": f, "reliability": round(reliability.get(f, 1.0), 3)}
-                  for f in PERF_FEATURES])
+    pd.DataFrame(
+        [{"feature": f, "reliability": round(reliability.get(f, 1.0), 3)} for f in PERF_FEATURES]
+    )
     .sort_values("reliability", ascending=False)
     .reset_index(drop=True)
 )
@@ -707,8 +765,7 @@ if dropped:
 # flag   : 후보 자격은 유지되므로 계열은 살아남는다. 대신 그 계열에서 나오는 항목은
 #          전부 low_reliability 표시가 붙어 '확신 있는' 발견으로 집계되지 않는다.
 starved = [
-    family for family, members in PERF_FAMILIES.items()
-    if not any(f in survivors for f in members)
+    family for family, members in PERF_FAMILIES.items() if not any(f in survivors for f in members)
 ]
 dead_families = starved if LOW_RELIABILITY_MODE == "exclude" else []
 
@@ -733,8 +790,7 @@ for threshold in [0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7]:
     alive = [f for f in PERF_FEATURES if reliability.get(f, 1.0) >= threshold]
     families_alive = len({feature_family.get(f) for f in alive} - {None})
     mark = "  ← 현재" if abs(threshold - MIN_RELIABILITY) < 1e-9 else ""
-    print(f"  {threshold:.2f}: {len(alive)}개 / 계열 {families_alive}개  "
-          f"{alive}{mark}")
+    print(f"  {threshold:.2f}: {len(alive)}개 / 계열 {families_alive}개  {alive}{mark}")
 
 # ------------------------------------------------------------
 # 권고
@@ -746,16 +802,22 @@ if LOW_RELIABILITY_MODE == "exclude":
 else:
     alive_families = {feature_family.get(f) for f in PERF_FEATURES} - {None}
 
-print(f"\n[상한] 후보 계열 {len(alive_families)}개 → 강점·개선점은 각각 최대 "
-      f"{len(alive_families)}개까지만 나올 수 있다. {sorted(alive_families)}")
+print(
+    f"\n[상한] 후보 계열 {len(alive_families)}개 → 강점·개선점은 각각 최대 "
+    f"{len(alive_families)}개까지만 나올 수 있다. {sorted(alive_families)}"
+)
 if LOW_RELIABILITY_MODE == "flag":
     confident_families = {feature_family.get(f) for f in survivors} - {None}
     if confident_families != alive_families:
-        print(f"       이 중 '확신 있는' 발견이 가능한 계열은 {len(confident_families)}개 "
-              f"{sorted(confident_families)} — 나머지는 판단 유보 표시가 붙는다.")
+        print(
+            f"       이 중 '확신 있는' 발견이 가능한 계열은 {len(confident_families)}개 "
+            f"{sorted(confident_families)} — 나머지는 판단 유보 표시가 붙는다."
+        )
     else:
-        print("       전 지표가 문턱을 넘어 판단 유보 표시가 붙는 항목은 없다 "
-              "(flag 모드가 사실상 무동작).")
+        print(
+            "       전 지표가 문턱을 넘어 판단 유보 표시가 붙는 항목은 없다 "
+            "(flag 모드가 사실상 무동작)."
+        )
 
 print("\n" + "-" * 62)
 if LOW_RELIABILITY_MODE == "flag" and starved:
@@ -768,7 +830,9 @@ if LOW_RELIABILITY_MODE == "flag" and starved:
     print("\n       더 근본적으로 풀려면 ANALYSIS_GAMES 를 늘려 reliability 를 올린다.")
     icc_map = {row["feature"]: row["icc"] for _, row in icc_pdf.iterrows()}
     windows = (ANALYSIS_GAMES, ANALYSIS_GAMES + 5, ANALYSIS_GAMES + 10)
-    print(f"\n       [경기 수별 reliability]  문턱 {MIN_RELIABILITY:.2f} / 현재 {ANALYSIS_GAMES}경기")
+    print(
+        f"\n       [경기 수별 reliability]  문턱 {MIN_RELIABILITY:.2f} / 현재 {ANALYSIS_GAMES}경기"
+    )
     header = "".join(f"{str(n) + '경기':>7s}" for n in windows)
     print(f"       {'feature':28s} {'ICC':>6s}{header}")
     for feature in PERF_FEATURES:
@@ -777,9 +841,14 @@ if LOW_RELIABILITY_MODE == "flag" and starved:
             continue
         values = [(n * icc) / (1 + (n - 1) * icc) for n in windows]
         marks = "".join(f"{v:7.3f}" for v in values)
-        need = next((n for n, v in zip(windows, values) if v >= MIN_RELIABILITY), None)
-        note = ("" if need == windows[0]
-                else (f"  ← {need}경기부터 통과" if need else f"  ← {windows[-1]}경기로도 미달"))
+        need = next(
+            (n for n, v in zip(windows, values, strict=False) if v >= MIN_RELIABILITY), None
+        )
+        note = (
+            ""
+            if need == windows[0]
+            else (f"  ← {need}경기부터 통과" if need else f"  ← {windows[-1]}경기로도 미달")
+        )
         print(f"       {feature:28s} {icc:6.3f}{marks}{note}")
 elif len(survivors) <= 2 or len(alive_families) <= 2:
     if len(survivors) <= 2:
@@ -803,7 +872,7 @@ elif len(survivors) <= 2 or len(alive_families) <= 2:
     icc_map = {row["feature"]: row["icc"] for _, row in icc_pdf.iterrows()}
     windows = (ANALYSIS_GAMES, ANALYSIS_GAMES + 5, ANALYSIS_GAMES + 10)
     header = "".join(f"{str(n) + '경기':>7s}" for n in windows)
-    print(f"\n           [경기 수별 reliability]")
+    print("\n           [경기 수별 reliability]")
     print(f"           {'feature':28s} {'ICC':>6s}{header}")
     for feature in PERF_FEATURES:
         icc = icc_map.get(feature)
@@ -815,8 +884,10 @@ elif dead_families:
     print("[권고] 생존 지표 수와 계열 수는 충분하지만 사라지는 계열이 있다.")
     print("       그 계열의 피드백이 필요하면 문턱을 낮추거나 flag 모드를 쓴다.")
 else:
-    print(f"[정상] 생존 지표 {len(survivors)}개 / 계열 {len(alive_families)}개. "
-          "현재 문턱을 그대로 쓴다.")
+    print(
+        f"[정상] 생존 지표 {len(survivors)}개 / 계열 {len(alive_families)}개. "
+        "현재 문턱을 그대로 쓴다."
+    )
 print("-" * 62)
 print("MIN_RELIABILITY / LOW_RELIABILITY_MODE 는 style_model.json 의 config 에 들어간다.")
 print("→ 바꾸면 Cell 18 을 다시 실행해야 추론에 반영된다.")
@@ -825,7 +896,8 @@ print("→ 바꾸면 Cell 18 을 다시 실행해야 추론에 반영된다.")
 
 stats_out = stats_group.merge(
     icc_pdf[["feature", "icc", REL_COL]].rename(columns={REL_COL: "reliability"}),
-    on="feature", how="left",
+    on="feature",
+    how="left",
 )
 stats_out["analysis_games"] = ANALYSIS_GAMES
 stats_out["z_clip"] = Z_CLIP
@@ -833,7 +905,9 @@ stats_out["created_at"] = pd.Timestamp.utcnow().isoformat()
 
 (
     spark.createDataFrame(stats_out)
-    .write.format("delta").mode("overwrite").option("overwriteSchema", "true")
+    .write.format("delta")
+    .mode("overwrite")
+    .option("overwriteSchema", "true")
     .save(PATH_POS_STATS)
 )
 print("position_feature_stats 저장 완료:", len(stats_out), "행")
@@ -870,14 +944,16 @@ display(chk.filter(F.col("team_position") == "TOP").orderBy(F.desc("reliability"
 # ============================================================
 # 09. 스타일 행렬 구성 + 프로파일 센터링
 # ============================================================
-pdf = (
-    df_z.select(
-        "match_id", "player_id", "game_start_datetime",
-        "team_position", "tier_bucket", "champion_name", "win",
-        *Z_ALL,
-    )
-    .toPandas()
-)
+pdf = df_z.select(
+    "match_id",
+    "player_id",
+    "game_start_datetime",
+    "team_position",
+    "tier_bucket",
+    "champion_name",
+    "win",
+    *Z_ALL,
+).toPandas()
 print("pandas 로 수집:", pdf.shape)
 
 S = pdf[Z_STYLE].to_numpy(dtype=float)
@@ -891,10 +967,26 @@ for i, c in enumerate(STYLE_FEATURES):
 S_COLS = [f"s_{c}" for c in STYLE_FEATURES]
 
 # 센터링 효과 확인: 원본은 서로 강하게 양의 상관, 센터링 후에는 상관이 흩어집니다
-print("\n[센터링 전] 스타일 피처 간 평균 상관:",
-      round(pd.DataFrame(S, columns=STYLE_FEATURES).corr().values[np.triu_indices(len(STYLE_FEATURES), 1)].mean(), 3))
-print("[센터링 후] 스타일 피처 간 평균 상관:",
-      round(pd.DataFrame(S_centered, columns=STYLE_FEATURES).corr().values[np.triu_indices(len(STYLE_FEATURES), 1)].mean(), 3))
+print(
+    "\n[센터링 전] 스타일 피처 간 평균 상관:",
+    round(
+        pd.DataFrame(S, columns=STYLE_FEATURES)
+        .corr()
+        .values[np.triu_indices(len(STYLE_FEATURES), 1)]
+        .mean(),
+        3,
+    ),
+)
+print(
+    "[센터링 후] 스타일 피처 간 평균 상관:",
+    round(
+        pd.DataFrame(S_centered, columns=STYLE_FEATURES)
+        .corr()
+        .values[np.triu_indices(len(STYLE_FEATURES), 1)]
+        .mean(),
+        3,
+    ),
+)
 
 # COMMAND ----------
 
@@ -923,6 +1015,7 @@ print("[센터링 후] 스타일 피처 간 평균 상관:",
 # ============================================================
 # 09-a. 잔차화 공통 함수 (v9)
 # ============================================================
+
 
 def win_flag_series(series) -> pd.Series:
     """Spark/pandas bool 과 문자열 bool 을 모두 0.0/1.0 으로 통일."""
@@ -959,9 +1052,14 @@ def snapshot_or_restore(frame: pd.DataFrame, columns: list, prefix: str = "raw_"
             frame[backup] = frame[column]
 
 
-def residualize_by_position(frame: pd.DataFrame, target_cols: list, control_cols: list,
-                            positions: list, zero_sum: bool = False,
-                            feature_names: list | None = None):
+def residualize_by_position(
+    frame: pd.DataFrame,
+    target_cols: list,
+    control_cols: list,
+    positions: list,
+    zero_sum: bool = False,
+    feature_names: list | None = None,
+):
     """포지션별로 target_cols 를 control_cols 로 잔차화하고 frame 을 제자리 갱신.
 
     zero_sum=True 면 잔차의 행 평균을 다시 빼서 '합이 0' 제약을 복원한다.
@@ -992,12 +1090,16 @@ def residualize_by_position(frame: pd.DataFrame, target_cols: list, control_cols
         if not (win.any() and (~win).any()):
             continue
         for i, name in enumerate(names):
-            rows.append({
-                "position": position,
-                "feature": name,
-                "승패차_전": round(float(np.median(Y[win, i]) - np.median(Y[~win, i])), 3),
-                "승패차_후": round(float(np.median(resid[win, i]) - np.median(resid[~win, i])), 3),
-            })
+            rows.append(
+                {
+                    "position": position,
+                    "feature": name,
+                    "승패차_전": round(float(np.median(Y[win, i]) - np.median(Y[~win, i])), 3),
+                    "승패차_후": round(
+                        float(np.median(resid[win, i]) - np.median(resid[~win, i])), 3
+                    ),
+                }
+            )
 
     report = pd.DataFrame(rows)
     if len(report):
@@ -1015,12 +1117,14 @@ def median_win_gap(frame: pd.DataFrame, features: list, prefix: str = "z_") -> p
             continue
         win_median = float(frame.loc[win, column].median())
         loss_median = float(frame.loc[~win, column].median())
-        rows.append({
-            "feature": feature,
-            "승리_median_z": round(win_median, 3),
-            "패배_median_z": round(loss_median, 3),
-            "승패차": round(win_median - loss_median, 3),
-        })
+        rows.append(
+            {
+                "feature": feature,
+                "승리_median_z": round(win_median, 3),
+                "패배_median_z": round(loss_median, 3),
+                "승패차": round(win_median - loss_median, 3),
+            }
+        )
     gap = pd.DataFrame(rows)
     if len(gap):
         gap["abs차"] = gap["승패차"].abs().round(3)
@@ -1077,7 +1181,7 @@ residual_models, residual_check = residualize_by_position(
     target_cols=S_COLS,
     control_cols=["_win_flag", "_perf_level"],
     positions=POSITIONS,
-    zero_sum=True,                      # 센터링으로 생긴 '합이 0' 제약 복원
+    zero_sum=True,  # 센터링으로 생긴 '합이 0' 제약 복원
     feature_names=STYLE_FEATURES,
 )
 
@@ -1088,8 +1192,12 @@ print(f"잔차화 후 최대 승패차: {worst:.3f}")
 if worst > 0.15:
     print("[주의] 아직 승패가 남아 있는 축이 있습니다. 위 표에서 해당 축을 확인하세요.")
 
-corr = (pd.DataFrame(pdf[S_COLS].to_numpy(), columns=STYLE_FEATURES)
-        .corr().values[np.triu_indices(len(STYLE_FEATURES), 1)].mean())
+corr = (
+    pd.DataFrame(pdf[S_COLS].to_numpy(), columns=STYLE_FEATURES)
+    .corr()
+    .values[np.triu_indices(len(STYLE_FEATURES), 1)]
+    .mean()
+)
 print(f"\n[잔차화 후] 스타일 피처 간 평균 상관: {corr:.3f}")
 print(f"참고: 합이 0 인 제약 때문에 이론적 하한은 {-1 / (len(STYLE_FEATURES) - 1):.3f} 입니다.")
 
@@ -1132,7 +1240,7 @@ print("\n스타일 축 잔차화 완료 — 다음은 09-c(성과 축)입니다.
 # 반드시 09-b 뒤, Cell 16(스타일 기준선) 앞이어야 한다.
 # 기준선은 이 z 값의 군집별 중앙값이므로 순서가 바뀌면 보정이 반영되지 않는다.
 
-if "_win_flag" not in pdf.columns:            # 09-b 를 건너뛴 경우 대비
+if "_win_flag" not in pdf.columns:  # 09-b 를 건너뛴 경우 대비
     pdf["_win_flag"] = win_flag_series(pdf["win"])
 
 # ------------------------------------------------------------
@@ -1181,27 +1289,34 @@ else:
     perf_residual_models, perf_residual_check = residualize_by_position(
         frame=pdf,
         target_cols=perf_target_cols,
-        control_cols=["_win_flag"],     # win 만! perf_level 을 넣으면 자기 자신을 뺀다
+        control_cols=["_win_flag"],  # win 만! perf_level 을 넣으면 자기 자신을 뺀다
         positions=POSITIONS,
-        zero_sum=False,                 # 성과 축에는 '합이 0' 제약이 없다
+        zero_sum=False,  # 성과 축에는 '합이 0' 제약이 없다
         feature_names=perf_residual_features,
     )
 
-    print(f"\n[포지션별 잔차화 결과] 대상 {len(perf_residual_features)}축 "
-          f"× {len(perf_residual_models)}포지션")
+    print(
+        f"\n[포지션별 잔차화 결과] 대상 {len(perf_residual_features)}축 "
+        f"× {len(perf_residual_models)}포지션"
+    )
     display(perf_residual_check.sort_values("승패차_전", key=abs, ascending=False))
 
     after_gap = median_win_gap(pdf, perf_residual_features)
     before_gap = perf_gap.set_index("feature")["승패차"]
     after_gap["승패차_전"] = after_gap["feature"].map(before_gap).round(3)
     print("\n[전체 기준 승패차 — 전 vs 후]")
-    print(after_gap[["feature", "승패차_전", "승패차"]]
-          .rename(columns={"승패차": "승패차_후"}).to_string(index=False))
+    print(
+        after_gap[["feature", "승패차_전", "승패차"]]
+        .rename(columns={"승패차": "승패차_후"})
+        .to_string(index=False)
+    )
 
     worst_perf = after_gap["abs차"].max()
     print(f"\n잔차화 후 최대 승패차: {worst_perf:.3f}")
     if worst_perf > 0.15:
-        print("[주의] 승패가 남아 있는 성과 축이 있습니다. win 이 선형으로만 설명되지 않는 축입니다.")
+        print(
+            "[주의] 승패가 남아 있는 성과 축이 있습니다. win 이 선형으로만 설명되지 않는 축입니다."
+        )
 
     print("\n원본 z 는 raw_z_* 컬럼에 남아 있습니다 (진단·비교용).")
     print("이 시점부터 z_* 는 '같은 승패 조건에서의 성과' 를 뜻합니다.")
@@ -1238,7 +1353,8 @@ print("\n성과 축 잔차화 완료 — 이 상태로 k 탐색·학습·기준�
 #       항상 k=2 가 나옵니다. 실제 선택 규칙은 Cell 12 참조.
 
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score, adjusted_rand_score
+from sklearn.metrics import adjusted_rand_score, silhouette_score
+
 
 def evaluate_k(X, k, n_boot=5, sil_sample=4000, seed=SEED):
     base = KMeans(n_clusters=k, n_init=20, random_state=seed).fit(X)
@@ -1265,6 +1381,7 @@ def evaluate_k(X, k, n_boot=5, sil_sample=4000, seed=SEED):
         "inertia": round(float(base.inertia_), 1),
     }
 
+
 # COMMAND ----------
 
 # ============================================================
@@ -1290,7 +1407,9 @@ all_k = pd.concat([res.assign(position=p) for p, res in k_search.items()])
 
 (
     spark.createDataFrame(all_k)
-    .write.format("delta").mode("overwrite").option("overwriteSchema", "true")
+    .write.format("delta")
+    .mode("overwrite")
+    .option("overwriteSchema", "true")
     .save(BASE + "gold/_tmp_k_search")
 )
 print("k 탐색 결과 저장 완료")
@@ -1301,6 +1420,7 @@ print("k 탐색 결과 저장 완료")
 # 12. k 선택 규칙
 # ============================================================
 ARI_MIN, SHARE_MIN, SIL_FLOOR_RATIO = 0.50, 0.19, 0.50
+
 
 def choose_k(res: pd.DataFrame, pos: str) -> int:
     sil_floor = res["silhouette"].max() * SIL_FLOOR_RATIO
@@ -1316,6 +1436,7 @@ def choose_k(res: pd.DataFrame, pos: str) -> int:
         return int(ok.loc[ok["ari_min"].idxmax(), "k"])
     print(f"[경고] {pos}: 모든 기준 미달 → k=3")
     return 3
+
 
 auto_k = {pos: choose_k(res, pos) for pos, res in k_search.items()}
 print("자동 선택:", auto_k)
@@ -1371,6 +1492,7 @@ pdf["cluster"] = -1
 #   4 = vision 축               5 = objective 축
 # (k=4 면 실제로 나타난 축 4개만 0~3 으로 압축됩니다)
 
+
 def canonical_order(centers):
     """군집을 지배 축 순서로 정렬한 인덱스 배열을 돌려준다.
 
@@ -1394,7 +1516,7 @@ for pos, k in chosen_k.items():
     remap = {old_i: new_i for new_i, old_i in enumerate(order)}
 
     km.cluster_centers_ = km.cluster_centers_[order]
-    km.labels_ = np.array([remap[l] for l in km.labels_])
+    km.labels_ = np.array([remap[label] for label in km.labels_])
 
     style_models[pos] = km
     pdf.loc[mask, "cluster"] = km.labels_
@@ -1420,8 +1542,12 @@ for pos in sorted(style_models):
 for pos, km in style_models.items():
     cen = pd.DataFrame(km.cluster_centers_, columns=STYLE_FEATURES).round(2)
     cen.index.name = "cluster"
-    share = (pdf[pdf["team_position"] == pos]["cluster"]
-             .value_counts(normalize=True).sort_index().round(3))
+    share = (
+        pdf[pdf["team_position"] == pos]["cluster"]
+        .value_counts(normalize=True)
+        .sort_index()
+        .round(3)
+    )
     cen["share"] = share.values
     print(f"\n===== {pos} =====")
     print(cen.to_string())
@@ -1441,9 +1567,9 @@ for pos, km in style_models.items():
 #     결과적으로 전 포지션이 프로토타입 3개이므로 chosen_k 도 3 이 상한이다.
 
 from itertools import permutations
+
 import numpy as np
 import pandas as pd
-
 
 STYLE_PROTOTYPES = {
     "TOP": {
@@ -1460,7 +1586,6 @@ STYLE_PROTOTYPES = {
             "시야 기여가 높고 자원·딜 비중은 낮은 운영형",
         ),
     },
-
     "JUNGLE": {
         "캐리 정글러형": (
             {"damage_share": 0.8, "gold_share": 0.8, "kill_participation": 0.4},
@@ -1475,7 +1600,6 @@ STYLE_PROTOTYPES = {
             "시야 기여가 높고 자원·딜 비중은 낮은 운영형",
         ),
     },
-
     "MIDDLE": {
         "딜 캐리형": (
             {"damage_share": 0.8, "gold_share": 0.6, "kill_participation": 0.5},
@@ -1490,7 +1614,6 @@ STYLE_PROTOTYPES = {
             "시야 기여가 높고 자원·딜 비중은 낮은 운영형",
         ),
     },
-
     "BOTTOM": {
         "전방 압박형": (
             {"damage_taken_per_min": 1.5, "gold_share": -0.2},
@@ -1505,11 +1628,14 @@ STYLE_PROTOTYPES = {
             "딜·자원 비중과 교전 관여도가 높은 캐리형",
         ),
     },
-
     "UTILITY": {
         "교전·시야 기여형": (
-            {"kill_participation": 0.8, "vision_score_per_min": 0.8,
-             "damage_share": -0.2, "gold_share": -0.2},
+            {
+                "kill_participation": 0.8,
+                "vision_score_per_min": 0.8,
+                "damage_share": -0.2,
+                "gold_share": -0.2,
+            },
             "교전 합류와 시야 기여가 높고 딜·자원 비중은 낮은 서포터",
         ),
         "딜 서포터형": (
@@ -1567,7 +1693,7 @@ def assign_style_labels(position, centers):
     for assignment in permutations(names, len(centers)):
         total = sum(
             prototype_score(center, prototypes[name][0])
-            for center, name in zip(centers, assignment)
+            for center, name in zip(centers, assignment, strict=False)
         )
         if total > best_total:
             best_total = total
@@ -1576,29 +1702,34 @@ def assign_style_labels(position, centers):
     labels = {}
     diagnostics = []
 
-    for cluster, (center, name) in enumerate(zip(centers, best_assignment)):
+    for cluster, (center, name) in enumerate(zip(centers, best_assignment, strict=False)):
         weights, description = prototypes[name]
 
         candidate_scores = sorted(
-            [(candidate_name, prototype_score(center, candidate_value[0]))
-             for candidate_name, candidate_value in prototypes.items()],
+            [
+                (candidate_name, prototype_score(center, candidate_value[0]))
+                for candidate_name, candidate_value in prototypes.items()
+            ],
             key=lambda item: item[1],
             reverse=True,
         )
         assigned_score = prototype_score(center, weights)
-        alternative_scores = [score for candidate_name, score in candidate_scores
-                              if candidate_name != name]
+        alternative_scores = [
+            score for candidate_name, score in candidate_scores if candidate_name != name
+        ]
         alternative = max(alternative_scores) if alternative_scores else assigned_score
 
         labels[cluster] = {"name": name, "desc": description}
-        diagnostics.append({
-            "team_position": position,
-            "cluster": cluster,
-            "label": name,
-            "score": round(assigned_score, 3),
-            "margin": round(assigned_score - alternative, 3),
-            "dominant_feature": STYLE_FEATURES[int(np.argmax(np.abs(center)))],
-        })
+        diagnostics.append(
+            {
+                "team_position": position,
+                "cluster": cluster,
+                "label": name,
+                "score": round(assigned_score, 3),
+                "margin": round(assigned_score - alternative, 3),
+                "dominant_feature": STYLE_FEATURES[int(np.argmax(np.abs(center)))],
+            }
+        )
 
     return labels, diagnostics
 
@@ -1619,22 +1750,24 @@ display(label_check.sort_values(["team_position", "cluster"]))
 # 중심점이 그 라벨과 안 맞아도 남은 자리에 배정되므로 score 를 반드시 확인한다.
 for position, model in style_models.items():
     if model.n_clusters == len(STYLE_PROTOTYPES[position]):
-        weak = label_check[(label_check["team_position"] == position)
-                           & (label_check["score"] < 0.3)]
+        weak = label_check[
+            (label_check["team_position"] == position) & (label_check["score"] < 0.3)
+        ]
         for _, row in weak.iterrows():
-            print(f"[확인] {position} cluster {row['cluster']} → '{row['label']}' "
-                  f"배정 점수 {row['score']} (지배축 {row['dominant_feature']}) "
-                  f"— 라벨이 중심점을 설명하는지 직접 보세요.")
+            print(
+                f"[확인] {position} cluster {row['cluster']} → '{row['label']}' "
+                f"배정 점수 {row['score']} (지배축 {row['dominant_feature']}) "
+                f"— 라벨이 중심점을 설명하는지 직접 보세요."
+            )
 
 if (label_check["margin"] < -0.15).any():
     print("[경고] 일부 군집은 일대일 제약으로 개별 점수 2순위 라벨에 배치됐습니다.")
-    display(label_check[label_check["margin"] < -0.15]
-            .sort_values(["team_position", "cluster"]))
+    display(label_check[label_check["margin"] < -0.15].sort_values(["team_position", "cluster"]))
 
 
 pdf["play_style"] = [
     STYLE_LABELS[position][int(cluster)]["name"]
-    for position, cluster in zip(pdf["team_position"], pdf["cluster"])
+    for position, cluster in zip(pdf["team_position"], pdf["cluster"], strict=False)
 ]
 
 mapping_check = pdf.groupby(["team_position", "cluster"])["play_style"].nunique()
@@ -1645,7 +1778,8 @@ print(f"중심점 기반 라벨 배치 완료 — {len(mapping_check)}개 조합
 
 display(
     pdf.groupby(["team_position", "cluster", "play_style"])
-    .size().reset_index(name="count")
+    .size()
+    .reset_index(name="count")
     .sort_values(["team_position", "cluster"])
 )
 
@@ -1681,8 +1815,10 @@ cluster_reports = build_cluster_report(
 )
 
 cluster_overview = pd.concat(
-    [report["cluster_profile"].assign(position=position)
-     for position, report in cluster_reports.items()]
+    [
+        report["cluster_profile"].assign(position=position)
+        for position, report in cluster_reports.items()
+    ]
 )
 display(cluster_overview)
 
@@ -1691,12 +1827,16 @@ for position, report in cluster_reports.items():
     if leak["eta_squared"] is not None and leak["eta_squared"] > 0.15:
         print(f"[경고] {position}: 군집이 실력 등급에 가깝습니다 (eta^2={leak['eta_squared']})")
     if report["ambiguous_rate"] > 0.20:
-        print(f"[경고] {position}: 경계 경기 {report['ambiguous_rate']:.1%} "
-              f"→ chosen_k['{position}'] 을 1 줄이는 것을 검토")
+        print(
+            f"[경고] {position}: 경계 경기 {report['ambiguous_rate']:.1%} "
+            f"→ chosen_k['{position}'] 을 1 줄이는 것을 검토"
+        )
     win_rates = report["cluster_profile"]["승률"].dropna()
     if len(win_rates) and (win_rates.max() - win_rates.min()) > 0.10:
-        print(f"[경고] {position}: 군집별 승률 폭 {win_rates.max() - win_rates.min():.3f} "
-              f"→ 스타일이 아니라 승패로 갈렸을 수 있습니다")
+        print(
+            f"[경고] {position}: 군집별 승률 폭 {win_rates.max() - win_rates.min():.3f} "
+            f"→ 스타일이 아니라 승패로 갈렸을 수 있습니다"
+        )
 
 # COMMAND ----------
 
@@ -1713,10 +1853,14 @@ for feature in STYLE_FEATURES:
     col = f"z_{feature}"
     win_med = float(pdf.loc[win_mask, col].median())
     loss_med = float(pdf.loc[~win_mask, col].median())
-    gap_rows.append({"feature": feature,
-                     "승리_median_z": round(win_med, 3),
-                     "패배_median_z": round(loss_med, 3),
-                     "승패차": round(win_med - loss_med, 3)})
+    gap_rows.append(
+        {
+            "feature": feature,
+            "승리_median_z": round(win_med, 3),
+            "패배_median_z": round(loss_med, 3),
+            "승패차": round(win_med - loss_med, 3),
+        }
+    )
 gap_df = pd.DataFrame(gap_rows)
 gap_df["abs차"] = gap_df["승패차"].abs()
 display(gap_df.sort_values("abs차", ascending=False).drop(columns="abs차"))
@@ -1736,12 +1880,14 @@ for position, model in style_models.items():
     mask = (pdf["team_position"] == position).to_numpy()
     center_axis = np.array([int(np.argmax(np.abs(c))) for c in model.cluster_centers_])
     predicted_axis = center_axis[pdf.loc[mask, "cluster"].to_numpy()]
-    agree_rows.append({
-        "position": position,
-        "k": int(model.n_clusters),
-        "지배축_일치율": round(float((predicted_axis == game_axis[mask]).mean()), 3),
-        "중심점_지배축": ", ".join(STYLE_FEATURES[i] for i in center_axis),
-    })
+    agree_rows.append(
+        {
+            "position": position,
+            "k": int(model.n_clusters),
+            "지배축_일치율": round(float((predicted_axis == game_axis[mask]).mean()), 3),
+            "중심점_지배축": ", ".join(STYLE_FEATURES[i] for i in center_axis),
+        }
+    )
 agree_df = pd.DataFrame(agree_rows)
 display(agree_df)
 
@@ -1834,42 +1980,57 @@ for position, clusters in style_baseline.items():
             # 중앙값의 표준오차 ≈ 1.2533 × σ / √n (정규 근사).
             # 이 값의 몇 배 아래로 컷을 내리면 잡음을 구조로 읽게 된다.
             standard_error = 1.2533 * sigma / max(np.sqrt(n), 1.0)
-            baseline_rows.append({
-                "position": position,
-                "cluster": int(cluster),
-                "style": STYLE_LABELS[position][int(cluster)]["name"],
-                "feature": feature,
-                "median_z": round(median, 3),
-                "abs_median": round(abs(median), 3),
-                "n": n,
-                "median_se": round(standard_error, 4),
-            })
+            baseline_rows.append(
+                {
+                    "position": position,
+                    "cluster": int(cluster),
+                    "style": STYLE_LABELS[position][int(cluster)]["name"],
+                    "feature": feature,
+                    "median_z": round(median, 3),
+                    "abs_median": round(abs(median), 3),
+                    "n": n,
+                    "median_se": round(standard_error, 4),
+                }
+            )
 
 baseline_dist = pd.DataFrame(baseline_rows)
-print(f"군집·지표 조합: {len(baseline_dist)}개 "
-      f"({baseline_dist['position'].nunique()}포지션 × 군집 × {len(PERF_FEATURES)}지표)")
+print(
+    f"군집·지표 조합: {len(baseline_dist)}개 "
+    f"({baseline_dist['position'].nunique()}포지션 × 군집 × {len(PERF_FEATURES)}지표)"
+)
 
 QUANTILES = [0.10, 0.25, 0.50, 0.75, 0.90]
-distribution = pd.DataFrame({
-    "부호 있는 median_z": baseline_dist["median_z"].quantile(QUANTILES).round(3).to_numpy(),
-    "절댓값 |median_z|": baseline_dist["abs_median"].quantile(QUANTILES).round(3).to_numpy(),
-}, index=[f"p{int(q * 100)}" for q in QUANTILES])
+distribution = pd.DataFrame(
+    {
+        "부호 있는 median_z": baseline_dist["median_z"].quantile(QUANTILES).round(3).to_numpy(),
+        "절댓값 |median_z|": baseline_dist["abs_median"].quantile(QUANTILES).round(3).to_numpy(),
+    },
+    index=[f"p{int(q * 100)}" for q in QUANTILES],
+)
 
 print("\n[군집별 성과 중앙값 분포]")
 print(distribution.to_string())
 print(f"\n범위: {baseline_dist['median_z'].min():+.3f} ~ {baseline_dist['median_z'].max():+.3f}")
-print(f"중앙값 표준오차(잡음 바닥) p50={baseline_dist['median_se'].median():.4f} "
-      f"/ p90={baseline_dist['median_se'].quantile(0.90):.4f}")
+print(
+    f"중앙값 표준오차(잡음 바닥) p50={baseline_dist['median_se'].median():.4f} "
+    f"/ p90={baseline_dist['median_se'].quantile(0.90):.4f}"
+)
 
 current_share = float((baseline_dist["abs_median"] > STYLE_BASELINE_CUT).mean())
-print(f"\n현재 STYLE_BASELINE_CUT = {STYLE_BASELINE_CUT:.2f} "
-      f"→ 컷을 넘는 조합 {current_share:.1%} "
-      f"({int((baseline_dist['abs_median'] > STYLE_BASELINE_CUT).sum())}/{len(baseline_dist)}개)")
+print(
+    f"\n현재 STYLE_BASELINE_CUT = {STYLE_BASELINE_CUT:.2f} "
+    f"→ 컷을 넘는 조합 {current_share:.1%} "
+    f"({int((baseline_dist['abs_median'] > STYLE_BASELINE_CUT).sum())}/{len(baseline_dist)}개)"
+)
 
 print("\n[지표별 |median_z| — 어떤 성과 지표가 스타일을 타는가]")
-print(baseline_dist.groupby("feature")["abs_median"]
-      .agg(["median", "max"]).round(3)
-      .sort_values("median", ascending=False).to_string())
+print(
+    baseline_dist.groupby("feature")["abs_median"]
+    .agg(["median", "max"])
+    .round(3)
+    .sort_values("median", ascending=False)
+    .to_string()
+)
 
 display(baseline_dist.sort_values("abs_median", ascending=False).head(20))
 
@@ -1888,20 +2049,22 @@ display(baseline_dist.sort_values("abs_median", ascending=False).head(20))
 
 TAG_TARGET_LOW, TAG_TARGET_HIGH = 0.15, 0.25
 TAG_TARGET_MID = (TAG_TARGET_LOW + TAG_TARGET_HIGH) / 2
-NOISE_SIGMA_MULTIPLE = 3.0      # 잡음 바닥 = 중앙값 표준오차 p90 의 3배
+NOISE_SIGMA_MULTIPLE = 3.0  # 잡음 바닥 = 중앙값 표준오차 p90 의 3배
 
 cut_grid = np.round(np.arange(0.05, 0.61, 0.01), 2)
 cut_rows = []
 for cut in cut_grid:
-    core = float((baseline_dist["median_z"] > cut).mean())        # core_* 후보
-    structural = float((baseline_dist["median_z"] < -cut).mean()) # structural/below_style 후보
-    cut_rows.append({
-        "cut": cut,
-        "core_비율": round(core, 3),
-        "structural_비율": round(structural, 3),
-        "분류_비율": round(core + structural, 3),
-        "목표범위": TAG_TARGET_LOW <= core + structural <= TAG_TARGET_HIGH,
-    })
+    core = float((baseline_dist["median_z"] > cut).mean())  # core_* 후보
+    structural = float((baseline_dist["median_z"] < -cut).mean())  # structural/below_style 후보
+    cut_rows.append(
+        {
+            "cut": cut,
+            "core_비율": round(core, 3),
+            "structural_비율": round(structural, 3),
+            "분류_비율": round(core + structural, 3),
+            "목표범위": TAG_TARGET_LOW <= core + structural <= TAG_TARGET_HIGH,
+        }
+    )
 cut_table = pd.DataFrame(cut_rows)
 
 print("[컷별 분류 비율] (0.05 간격만 표시)")
@@ -1917,8 +2080,10 @@ recommended_cut = round(max(quantile_cut, noise_floor), 2)
 achieved = float((baseline_dist["abs_median"] > recommended_cut).mean())
 achieved_n = int((baseline_dist["abs_median"] > recommended_cut).sum())
 
-print(f"\n목표 {TAG_TARGET_LOW:.0%}~{TAG_TARGET_HIGH:.0%} 분류를 만드는 컷 "
-      f"(|median_z| 의 p{int((1 - TAG_TARGET_MID) * 100)}): {quantile_cut:.3f}")
+print(
+    f"\n목표 {TAG_TARGET_LOW:.0%}~{TAG_TARGET_HIGH:.0%} 분류를 만드는 컷 "
+    f"(|median_z| 의 p{int((1 - TAG_TARGET_MID) * 100)}): {quantile_cut:.3f}"
+)
 print(f"잡음 바닥 (중앙값 표준오차 p90 × {NOISE_SIGMA_MULTIPLE:.0f}): {noise_floor:.3f}")
 
 if noise_floor > quantile_cut:
@@ -1929,8 +2094,10 @@ if noise_floor > quantile_cut:
 
 print("\n" + "=" * 62)
 print(f"  권고: STYLE_BASELINE_CUT = {recommended_cut:.2f}")
-print(f"        (현재 {STYLE_BASELINE_CUT:.2f} → 분류 비율 {current_share:.1%} "
-      f"→ {achieved:.1%}, {achieved_n}/{len(baseline_dist)}개 조합)")
+print(
+    f"        (현재 {STYLE_BASELINE_CUT:.2f} → 분류 비율 {current_share:.1%} "
+    f"→ {achieved:.1%}, {achieved_n}/{len(baseline_dist)}개 조합)"
+)
 print("=" * 62)
 
 in_band = cut_table[cut_table["목표범위"]]
@@ -1941,12 +2108,15 @@ else:
 
 print("\n[권고 컷에서 분류될 조합]")
 flagged = baseline_dist[baseline_dist["abs_median"] > recommended_cut].copy()
-flagged["예상_태그군"] = np.where(flagged["median_z"] > 0,
-                                "core_strength / core_weakness",
-                                "structural / below_style")
+flagged["예상_태그군"] = np.where(
+    flagged["median_z"] > 0, "core_strength / core_weakness", "structural / below_style"
+)
 if len(flagged):
-    display(flagged.sort_values("abs_median", ascending=False)
-            [["position", "style", "feature", "median_z", "median_se", "n", "예상_태그군"]])
+    display(
+        flagged.sort_values("abs_median", ascending=False)[
+            ["position", "style", "feature", "median_z", "median_se", "n", "예상_태그군"]
+        ]
+    )
 else:
     print("없음 — 이 컷에서는 여전히 전부 neutral 입니다.")
 
@@ -1957,8 +2127,10 @@ print("\n" + "-" * 62)
 print("[Cell 00 설정에 반영하는 방법]")
 print("  Cell 00 의 STYLE_BASELINE_CUT 줄을 아래로 바꾼다.")
 print()
-print(f"      STYLE_BASELINE_CUT = {recommended_cut:.2f}   "
-      f"# 16-c 권고 (분류 비율 {achieved:.0%}, 잡음 바닥 {noise_floor:.3f})")
+print(
+    f"      STYLE_BASELINE_CUT = {recommended_cut:.2f}   "
+    f"# 16-c 권고 (분류 비율 {achieved:.0%}, 잡음 바닥 {noise_floor:.3f})"
+)
 print()
 print("  STYLE_BASELINE_CUT 은 style_model.json 의 config 에도 들어간다.")
 print("  → 값을 바꾸면 Cell 05 부터 재실행해야 JSON 과 추론 결과에 반영된다.")
@@ -1973,30 +2145,57 @@ print("-" * 62)
 # 17. gold/play_style_clusters 저장
 # ============================================================
 out_cols = (
-    ["match_id", "player_id", "game_start_datetime", "team_position", "tier_bucket",
-     "champion_name", "win", "cluster", "play_style"] + Z_ALL + S_COLS
+    [
+        "match_id",
+        "player_id",
+        "game_start_datetime",
+        "team_position",
+        "tier_bucket",
+        "champion_name",
+        "win",
+        "cluster",
+        "play_style",
+    ]
+    + Z_ALL
+    + S_COLS
 )
 (
     spark.createDataFrame(pdf[out_cols])
-    .write.format("delta").mode("overwrite").option("overwriteSchema", "true")
+    .write.format("delta")
+    .mode("overwrite")
+    .option("overwriteSchema", "true")
     .save(PATH_CLUSTERS)
 )
 
 # 스타일 정의 테이블 (서비스 화면·프롬프트에서 참조)
 def_rows = [
     {
-        "team_position": pos, "cluster": int(c),
-        "style_name": v["name"], "style_description": v["desc"],
-        "centroid": json.dumps(dict(zip(STYLE_FEATURES,
-                     np.round(style_models[pos].cluster_centers_[c], 4).tolist())), ensure_ascii=False),
+        "team_position": pos,
+        "cluster": int(c),
+        "style_name": v["name"],
+        "style_description": v["desc"],
+        "centroid": json.dumps(
+            dict(
+                zip(
+                    STYLE_FEATURES,
+                    np.round(style_models[pos].cluster_centers_[c], 4).tolist(),
+                    strict=False,
+                )
+            ),
+            ensure_ascii=False,
+        ),
         "share": float((pdf[(pdf.team_position == pos)]["cluster"] == c).mean()),
     }
-    for pos, cl in STYLE_LABELS.items() if pos in style_models
-    for c, v in cl.items() if c < style_models[pos].n_clusters
+    for pos, cl in STYLE_LABELS.items()
+    if pos in style_models
+    for c, v in cl.items()
+    if c < style_models[pos].n_clusters
 ]
 (
     spark.createDataFrame(pd.DataFrame(def_rows))
-    .write.format("delta").mode("overwrite").option("overwriteSchema", "true")
+    .write.format("delta")
+    .mode("overwrite")
+    .option("overwriteSchema", "true")
     .save(PATH_STYLE_DEF)
 )
 print("클러스터 결과 및 스타일 정의 저장 완료")
@@ -2092,18 +2291,24 @@ serving = {
         for position, clusters in style_baseline.items()
     },
     "feature_labels": {
-        "kda": "KDA", "kill_participation": "전투 관여도",
-        "cs_per_min": "CS 수급", "gold_per_min": "골드 수급",
-        "damage_per_min": "챔피언 피해량", "damage_taken_per_min": "피해 감수",
-        "vision_score_per_min": "시야 기여도", "objective_damage_per_min": "오브젝트 기여도",
-        "damage_share": "팀 내 딜 기여도", "gold_share": "팀 내 골드 비중",
+        "kda": "KDA",
+        "kill_participation": "전투 관여도",
+        "cs_per_min": "CS 수급",
+        "gold_per_min": "골드 수급",
+        "damage_per_min": "챔피언 피해량",
+        "damage_taken_per_min": "피해 감수",
+        "vision_score_per_min": "시야 기여도",
+        "objective_damage_per_min": "오브젝트 기여도",
+        "damage_share": "팀 내 딜 기여도",
+        "gold_share": "팀 내 골드 비중",
         "resource_efficiency": "자원 대비 딜 효율",
         "vision_wards_bought_in_game": "제어 와드 활용",
     },
 }
 
 missing_labels = [
-    feature for feature in PERF_FEATURES + STYLE_FEATURES
+    feature
+    for feature in PERF_FEATURES + STYLE_FEATURES
     if feature not in serving["feature_labels"]
 ]
 if missing_labels:
@@ -2119,8 +2324,7 @@ serving["residual"] = {
     "controls": RESIDUAL_CONTROLS,
     "perf_features": PERF_FEATURES,
     "positions": {
-        position: {"beta": np.round(beta, 6).tolist()}
-        for position, beta in residual_models.items()
+        position: {"beta": np.round(beta, 6).tolist()} for position, beta in residual_models.items()
     },
 }
 
@@ -2148,9 +2352,14 @@ if not _perf_residual_features:
 payload = json.dumps(serving, ensure_ascii=False, indent=2)
 dbutils.fs.put(PATH_SERVING, payload, overwrite=True)
 print(f"서빙 아티팩트 저장: {PATH_SERVING} ({len(payload) / 1024:.1f} KB)")
-print("explain 포지션:", len(serving["explain"]["positions"]),
-      "/ style residual 포지션:", len(serving["residual"]["positions"]),
-      "/ perf residual 포지션:", len(serving["perf_residual"]["positions"]))
+print(
+    "explain 포지션:",
+    len(serving["explain"]["positions"]),
+    "/ style residual 포지션:",
+    len(serving["residual"]["positions"]),
+    "/ perf residual 포지션:",
+    len(serving["perf_residual"]["positions"]),
+)
 print("perf_residual 대상 축:", serving["perf_residual"]["features"] or "없음")
 print("FastAPI에는 style_model.json, playstyle_analyzer.py, playstyle_explain_v2.py 를 복사합니다.")
 
@@ -2178,9 +2387,19 @@ print(f"최상위 키: {sorted(saved)}\n")
 
 cfg = saved["config"]
 print("[config — 추론이 그대로 읽는 값]")
-for key in ("analysis_games", "min_games", "min_position_games", "z_clip",
-            "min_reliability", "low_reliability_mode", "style_baseline_cut",
-            "strength_threshold", "improvement_threshold", "dominant_share", "has_tier"):
+for key in (
+    "analysis_games",
+    "min_games",
+    "min_position_games",
+    "z_clip",
+    "min_reliability",
+    "low_reliability_mode",
+    "style_baseline_cut",
+    "strength_threshold",
+    "improvement_threshold",
+    "dominant_share",
+    "has_tier",
+):
     print(f"  {key:22s} {cfg.get(key)}")
 
 tier_buckets = sorted({k.split("|")[1] for k in saved["stats"]})
@@ -2193,12 +2412,16 @@ for position in sorted(saved["centroids"]):
     names = [v["name"] for v in saved["labels"][position].values()]
     print(f"  {position:8s} k={len(saved['centroids'][position])}  {names}")
 
-print(f"\n[잔차화]")
-print(f"  스타일 축(09-b) 포지션 {len(saved['residual']['positions'])}개 "
-      f"/ 통제 {saved['residual']['controls']}")
+print("\n[잔차화]")
+print(
+    f"  스타일 축(09-b) 포지션 {len(saved['residual']['positions'])}개 "
+    f"/ 통제 {saved['residual']['controls']}"
+)
 perf = saved.get("perf_residual", {})
-print(f"  성과 축(09-c) 포지션 {len(perf.get('positions', {}))}개 "
-      f"/ 통제 {perf.get('controls')} / 대상 {perf.get('features') or '없음'}")
+print(
+    f"  성과 축(09-c) 포지션 {len(perf.get('positions', {}))}개 "
+    f"/ 통제 {perf.get('controls')} / 대상 {perf.get('features') or '없음'}"
+)
 
 print(f"\n[신뢰도]  문턱 {cfg.get('min_reliability')} / 모드 {cfg.get('low_reliability_mode')}")
 for feature, value in sorted(saved["reliability"].items(), key=lambda x: -x[1]):
@@ -2241,31 +2464,38 @@ USE_MLFLOW = False
 if not USE_MLFLOW:
     print("MLflow 로깅 건너뜀 (USE_MLFLOW=False)")
 else:
-    import mlflow, tempfile, os
+    import os
+    import tempfile
+
+    import mlflow
 
     mlflow.set_experiment("/Shared/lol_insight_coach_play_style")
 
     with mlflow.start_run(run_name=f"style_v{serving['version']}") as run:
-        mlflow.log_params({
-            "n_style_features": len(STYLE_FEATURES),
-            "n_perf_features": len(PERF_FEATURES),
-            "z_clip": Z_CLIP,
-            "profile_centering": True,
-            "robust_z": True,
-            "per_position_model": True,
-            "has_tier": HAS_TIER,
-            "chosen_k": json.dumps(chosen_k),
-            "n_rows": len(pdf),
-        })
+        mlflow.log_params(
+            {
+                "n_style_features": len(STYLE_FEATURES),
+                "n_perf_features": len(PERF_FEATURES),
+                "z_clip": Z_CLIP,
+                "profile_centering": True,
+                "robust_z": True,
+                "per_position_model": True,
+                "has_tier": HAS_TIER,
+                "chosen_k": json.dumps(chosen_k),
+                "n_rows": len(pdf),
+            }
+        )
         for pos, res in k_search.items():
             k = chosen_k[pos]
             row = res[res["k"] == k].iloc[0]
-            mlflow.log_metrics({
-                f"{pos}_k": k,
-                f"{pos}_silhouette": row["silhouette"],
-                f"{pos}_ari_mean": row["ari_mean"],
-                f"{pos}_min_share": row["min_share"],
-            })
+            mlflow.log_metrics(
+                {
+                    f"{pos}_k": k,
+                    f"{pos}_silhouette": row["silhouette"],
+                    f"{pos}_ari_mean": row["ari_mean"],
+                    f"{pos}_min_share": row["min_share"],
+                }
+            )
         for f, r in reliability.items():
             mlflow.log_metric(f"reliability_{f}", r)
 
@@ -2288,6 +2518,7 @@ else:
 # MAGIC FastAPI 모듈로 옮기면 됩니다. 입력은 경기 10개짜리 `list[dict]` 하나입니다.
 
 # COMMAND ----------
+
 
 # ============================================================
 # 20. PlayStyleAnalyzer — FastAPI 로 그대로 이식 가능
@@ -2356,7 +2587,7 @@ class PlayStyleAnalyzer:
         """
         base = (game or {}).get("z_raw") or z
         vec = np.array([base.get(f, 0.0) for f in self.style_features], dtype=float)
-        vec = vec - vec.mean()                      # 학습과 동일한 프로파일 센터링
+        vec = vec - vec.mean()  # 학습과 동일한 프로파일 센터링
 
         residual = self.a.get("residual")
         positions = (residual or {}).get("positions") or {}
@@ -2368,13 +2599,16 @@ class PlayStyleAnalyzer:
         beta = np.asarray(positions[position]["beta"], dtype=float)
         perf_features = residual.get("perf_features") or self.perf_features
         values = [base[f] for f in perf_features if f in base]
-        design = np.array([
-            1.0,
-            self._win_value(game),
-            float(np.mean(values)) if values else 0.0,
-        ], dtype=float)
+        design = np.array(
+            [
+                1.0,
+                self._win_value(game),
+                float(np.mean(values)) if values else 0.0,
+            ],
+            dtype=float,
+        )
         vec = vec - design @ beta
-        return vec - vec.mean()                     # 합이 0 인 제약 복원
+        return vec - vec.mean()  # 합이 0 인 제약 복원
 
     def _assign_style(self, position, z: dict, game: dict = None):
         """가장 가까운 중심점과, 전체 중심점까지의 거리를 함께 반환합니다.
@@ -2404,17 +2638,20 @@ class PlayStyleAnalyzer:
 
     # ---------- 대표 스타일 ----------
     def dominant_style(self, rows: list, main_position: str) -> dict:
-        sub = [r for r in rows
-               if r["team_position"] == main_position and r["cluster"] is not None]
+        sub = [r for r in rows if r["team_position"] == main_position and r["cluster"] is not None]
 
         if len(sub) < self.cfg["min_position_games"]:
             return {
-                "status": "insufficient", "games": len(sub), "styles": [],
-                "consistency": None, "distribution": [],
+                "status": "insufficient",
+                "games": len(sub),
+                "styles": [],
+                "consistency": None,
+                "distribution": [],
                 "message": f"{main_position} 경기가 {len(sub)}판이라 대표 스타일을 판정할 수 없습니다.",
             }
 
         from collections import Counter
+
         cnt = Counter(r["cluster"] for r in sub)
         total = sum(cnt.values())
 
@@ -2429,7 +2666,8 @@ class PlayStyleAnalyzer:
         top2_share = sum(cnt[c] for c in ranked[:2]) / total
         second_share = cnt[ranked[1]] / total if len(ranked) > 1 else 0.0
 
-        label = lambda c: self.a["labels"][main_position][str(c)]
+        def label(c):
+            return self.a["labels"][main_position][str(c)]
 
         if top_share >= self.cfg["dominant_share"]:
             status, picked = "single", ranked[:1]
@@ -2445,15 +2683,18 @@ class PlayStyleAnalyzer:
             "games": len(sub),
             "consistency": round(top_share, 2),
             "styles": [
-                {"cluster": c, "ratio": round(100 * cnt[c] / total, 1), **label(c)}
-                for c in picked
+                {"cluster": c, "ratio": round(100 * cnt[c] / total, 1), **label(c)} for c in picked
             ],
             "distribution": [
-                {"style": label(c)["name"], "count": cnt[c],
-                 "ratio": round(100 * cnt[c] / total, 1)}
+                {
+                    "style": label(c)["name"],
+                    "count": cnt[c],
+                    "ratio": round(100 * cnt[c] / total, 1),
+                }
                 for c in ranked
             ],
         }
+
 
 # COMMAND ----------
 
@@ -2477,6 +2718,7 @@ class PlayStyleAnalyzer:
 #   below_style   : 스타일상 낮은 지표인데 같은 스타일 중에서도 낮음
 #   structural    : 스타일상 원래 낮은 지표 (탱커의 딜량 등) → 개선점에서 제외
 #   neutral       : 스타일과 무관한 지표
+
 
 def _build_profile(self, rows: list, main_position: str, main_cluster):
     rel = self.a["reliability"]
@@ -2536,13 +2778,14 @@ def _build_profile(self, rows: list, main_position: str, main_cluster):
     # 후보 자격이 있는 것들 중에서 고른다 — 미달 지표가 계열 대표를 차지한 뒤 빠지면
     # 그 계열이 통째로 사라지기 때문이다.
     keep = set()
-    for fam, members in self.cfg["perf_families"].items():
+    for _fam, members in self.cfg["perf_families"].items():
         avail = [f for f in members if f in eligible]
         if avail:
             keep.add(max(avail, key=lambda f: abs(scores[f])))
 
-    ranked = sorted(((f, s) for f, s in scores.items() if f in keep),
-                    key=lambda x: x[1], reverse=True)
+    ranked = sorted(
+        ((f, s) for f, s in scores.items() if f in keep), key=lambda x: x[1], reverse=True
+    )
     s_th = self.cfg["strength_threshold"]
     i_th = self.cfg["improvement_threshold"]
     fl = self.a["feature_labels"]
@@ -2555,7 +2798,8 @@ def _build_profile(self, rows: list, main_position: str, main_cluster):
     # structural 은 개선점에서 제외합니다.
     # 프롬프트에 넣고 "언급하지 마라"고 하면 LLM 이 종종 언급합니다.
     improvements = [
-        item(f, s) for f, s in reversed(ranked)
+        item(f, s)
+        for f, s in reversed(ranked)
         if s <= -i_th and detail[f]["finding_tag"] != "structural"
     ][:3]
 
@@ -2567,7 +2811,7 @@ def _build_profile(self, rows: list, main_position: str, main_cluster):
         for f, sc in ranked:
             if detail[f]["finding_tag"] == "structural":
                 continue
-            if sc <= 0:          # 평균 이하를 "강점" 으로 내보내지 않습니다
+            if sc <= 0:  # 평균 이하를 "강점" 으로 내보내지 않습니다
                 break
             strengths.append({**item(f, sc), "is_relative": True})
             break
@@ -2591,8 +2835,9 @@ def _build_profile(self, rows: list, main_position: str, main_cluster):
         for it in lst:
             it.setdefault("is_relative", False)
 
-    excluded = [fl.get(f, f) for f, s in ranked
-                if s <= -i_th and detail[f]["finding_tag"] == "structural"]
+    excluded = [
+        fl.get(f, f) for f, s in ranked if s <= -i_th and detail[f]["finding_tag"] == "structural"
+    ]
 
     # 최우선 목표: 단순 최저점이 아니라 "이 스타일의 핵심인데 부족한 것"
     #
@@ -2602,8 +2847,9 @@ def _build_profile(self, rows: list, main_position: str, main_cluster):
     # 그래서 진짜 개선점을 먼저 보고, 없을 때만 폴백에서 고릅니다.
     primary_goal = None
     if improvements:
-        real = [x for x in improvements
-                if not x.get("is_relative") and not x.get("low_reliability")]
+        real = [
+            x for x in improvements if not x.get("is_relative") and not x.get("low_reliability")
+        ]
         pool = real or improvements
         # 신뢰할 수 있는 항목이 하나라도 있으면 그쪽을 최우선 목표로 삼는다.
         confident = [x for x in pool if not x.get("low_reliability")]
@@ -2614,17 +2860,22 @@ def _build_profile(self, rows: list, main_position: str, main_cluster):
         # 폴백이 목표가 된 경우에는 태그의 강한 의미를 지웁니다.
         # 프롬프트가 tag 를 먼저 보고 단정 문장을 쓰는 것을 막습니다.
         if primary_goal.get("is_relative"):
-            primary_goal = {**primary_goal,
-                            "finding_tag_raw": primary_goal["finding_tag"],
-                            "finding_tag": "relative"}
+            primary_goal = {
+                **primary_goal,
+                "finding_tag_raw": primary_goal["finding_tag"],
+                "finding_tag": "relative",
+            }
 
     # 어떤 지표가 왜 빠졌는지 기록에 남긴다. 값이 없어서가 아니라 못 믿어서 빠진 것이다.
     low_reliability_excluded = [
-        {"metric": fl.get(f, f), "key": f,
-         "reliability": detail[f]["reliability"],
-         "median_z": detail[f]["median_z"],
-         "score": round(scores[f], 2),
-         "dropped": low_mode == "exclude"}
+        {
+            "metric": fl.get(f, f),
+            "key": f,
+            "reliability": detail[f]["reliability"],
+            "median_z": detail[f]["median_z"],
+            "score": round(scores[f], 2),
+            "dropped": low_mode == "exclude",
+        }
         for f in low_rel_keys
     ]
 
@@ -2639,14 +2890,18 @@ def _build_profile(self, rows: list, main_position: str, main_cluster):
         # 폴백으로 채워진 항목은 is_relative=True 이므로 여기서 제외합니다.
         # 프롬프트는 이 플래그로 단정 표현과 완곡 표현을 갈라야 합니다.
         "has_strengths": any(
-            not x["is_relative"] and not x.get("low_reliability") for x in strengths),
+            not x["is_relative"] and not x.get("low_reliability") for x in strengths
+        ),
         "has_improvements": any(
-            not x["is_relative"] and not x.get("low_reliability") for x in improvements),
+            not x["is_relative"] and not x.get("low_reliability") for x in improvements
+        ),
         "strength_is_relative": bool(strengths) and all(x["is_relative"] for x in strengths),
-        "improvement_is_relative": bool(improvements) and all(x["is_relative"] for x in improvements),
+        "improvement_is_relative": bool(improvements)
+        and all(x["is_relative"] for x in improvements),
         "primary_goal": primary_goal,
         "all_scores": detail,
     }
+
 
 PlayStyleAnalyzer.build_profile = _build_profile
 print("build_profile 등록 완료")
@@ -2678,8 +2933,10 @@ COACHING_TONE = {
         "priority": 2,
         "label": "스타일 내 하위",
         "template": "{metric}은(는) {style} 특성상 낮게 나오는 지표지만, 같은 스타일 유저들과 비교해도 낮은 편입니다.",
-        "prompt_hint": ("이 스타일에서는 원래 낮은 지표다. 반드시 '같은 스타일 유저와 비교해도' 라는 "
-                        "기준을 밝혀라. 전체 평균과 비교해 지적하면 안 된다."),
+        "prompt_hint": (
+            "이 스타일에서는 원래 낮은 지표다. 반드시 '같은 스타일 유저와 비교해도' 라는 "
+            "기준을 밝혀라. 전체 평균과 비교해 지적하면 안 된다."
+        ),
     },
     "core_strength": {
         "priority": 1,
@@ -2704,18 +2961,24 @@ COACHING_TONE = {
         "priority": 99,
         "label": "상대적 하위",
         "template": "{metric}이(가) 다른 지표에 비해 낮은 편입니다.",
-        "prompt_hint": ("뚜렷한 약점이 없는 유저다. 지적하지 말고 "
-                        "'굳이 꼽자면' 정도의 어조로 한 가지만 제안하라."),
+        "prompt_hint": (
+            "뚜렷한 약점이 없는 유저다. 지적하지 말고 "
+            "'굳이 꼽자면' 정도의 어조로 한 가지만 제안하라."
+        ),
     },
 }
 
-RELATIVE_HINT = ("임계값을 넘지 않아 실제 강약점이라 보기 어렵다. "
-                 "'부족하다' 같은 단정 대신 '상대적으로 낮은 편' 정도로만 표현하라.")
+RELATIVE_HINT = (
+    "임계값을 넘지 않아 실제 강약점이라 보기 어렵다. "
+    "'부족하다' 같은 단정 대신 '상대적으로 낮은 편' 정도로만 표현하라."
+)
 
 # low_reliability_mode="flag" 일 때만 쓰인다. exclude 에서는 목록에 오지 않는다.
 # 이 문장은 LLM 프롬프트로 그대로 나가므로 경기 수를 하드코딩하지 않는다.
-LOW_RELIABILITY_HINT = (f"경기 간 편차가 커서 {ANALYSIS_GAMES}경기로는 확정하기 이른 지표다. "
-                        "'~한 편' 정도로만 말하고 단정하거나 최우선 과제로 삼지 마라.")
+LOW_RELIABILITY_HINT = (
+    f"경기 간 편차가 커서 {ANALYSIS_GAMES}경기로는 확정하기 이른 지표다. "
+    "'~한 편' 정도로만 말하고 단정하거나 최우선 과제로 삼지 마라."
+)
 
 
 def coaching_line(x: dict, style_name: str = "") -> str:
@@ -2733,8 +2996,7 @@ def annotate_tone(profile: dict, style_name: str = "") -> dict:
     """strengths / improvements 각 항목에 톤 정보를 붙이고 우선순위로 정렬."""
     for key in ("strengths", "improvements"):
         for x in profile.get(key) or []:
-            tone = COACHING_TONE.get(x.get("finding_tag", "neutral"),
-                                     COACHING_TONE["neutral"])
+            tone = COACHING_TONE.get(x.get("finding_tag", "neutral"), COACHING_TONE["neutral"])
             x.setdefault("low_reliability", False)
             x["tone_label"] = tone["label"]
             x["priority"] = 99 if x.get("is_relative") else tone["priority"]
@@ -2762,12 +3024,15 @@ print("코칭 톤 테이블 등록 완료")
 # 프롬프트 제약만으로는 LLM 이 작은 숫자를 서사로 만들어내는 걸 못 막으므로
 # 코드에서 잘라내고 "변화 없음"을 명시적으로 넘깁니다.
 
+
 def _recent_trend(self, rows: list):
     ordered = sorted(rows, key=lambda r: r["game_start_datetime"])
     need = self.cfg["trend_min_games"]
     if len(ordered) < need:
         return {
-            "status": "insufficient", "changes": [], "window": None,
+            "status": "insufficient",
+            "changes": [],
+            "window": None,
             "note": f"추세 비교에는 주 포지션 {need}경기가 필요합니다 (현재 {len(ordered)}경기).",
         }
 
@@ -2784,41 +3049,55 @@ def _recent_trend(self, rows: list):
         if not a or not b:
             continue
         d = (float(np.median(b)) - float(np.median(a))) * rel.get(f, 1.0)
-        changes.append({
-            "metric": fl.get(f, f), "key": f, "delta": round(d, 2),
-            "direction": "up" if d >= th else ("down" if d <= -th else "flat"),
-            "significant": abs(d) >= th,
-        })
+        changes.append(
+            {
+                "metric": fl.get(f, f),
+                "key": f,
+                "delta": round(d, 2),
+                "direction": "up" if d >= th else ("down" if d <= -th else "flat"),
+                "significant": abs(d) >= th,
+            }
+        )
 
     sig = [c for c in changes if c["significant"]]
     return {
         "status": "changed" if sig else "stable",
         "window": {"previous": len(prev), "recent": len(recent)},
         "changes": sorted(sig, key=lambda c: abs(c["delta"]), reverse=True)[:3],
-        "note": None if sig else
-                f"최근 {len(recent)}경기와 이전 {len(prev)}경기 사이에 통계적으로 유의미한 변화가 없습니다.",
+        "note": None
+        if sig
+        else f"최근 {len(recent)}경기와 이전 {len(prev)}경기 사이에 통계적으로 유의미한 변화가 없습니다.",
     }
+
 
 PlayStyleAnalyzer.recent_trend = _recent_trend
 print("recent_trend 등록 완료")
 
 # COMMAND ----------
 
+
 # ============================================================
 # 23. 최종 코칭 컨텍스트 조립
 # ============================================================
 def _analyze(self, games: list) -> dict:
     if len(games) < self.cfg["min_games"]:
-        return {"status": "insufficient_games", "games": len(games),
-                "message": f"분석에는 최소 {self.cfg['min_games']}경기가 필요합니다."}
+        return {
+            "status": "insufficient_games",
+            "games": len(games),
+            "message": f"분석에는 최소 {self.cfg['min_games']}경기가 필요합니다.",
+        }
 
     rows = self.analyze_games(games)
     valid = [row for row in rows if row["z"]]
     if not valid:
-        return {"status": "unsupported_position", "games": len(games),
-                "message": "분석 기준이 없는 포지션 또는 티어입니다."}
+        return {
+            "status": "unsupported_position",
+            "games": len(games),
+            "message": "분석 기준이 없는 포지션 또는 티어입니다.",
+        }
 
     from collections import Counter
+
     position_counts = Counter(row["team_position"] for row in valid)
     main_position, main_games = position_counts.most_common(1)[0]
     style = self.dominant_style(rows, main_position)
@@ -2864,6 +3143,7 @@ def _analyze(self, games: list) -> dict:
         "_debug_scores": profile["all_scores"],
     }
 
+
 PlayStyleAnalyzer.analyze = _analyze
 print("analyze 등록 완료")
 
@@ -2890,32 +3170,48 @@ print(f"[분석 대상 커버리지] 기준 {ANALYSIS_GAMES}경기")
 for threshold in sorted({5, 10, 15, 20, ANALYSIS_GAMES}):
     eligible = game_counts.filter(F.col("count") >= threshold).count()
     mark = "  ← 현재" if threshold == ANALYSIS_GAMES else ""
-    print(f"  {threshold:>2}경기 이상: {eligible:>5}명 "
-          f"({100 * eligible / max(n_total, 1):5.1f}%){mark}")
+    print(
+        f"  {threshold:>2}경기 이상: {eligible:>5}명 "
+        f"({100 * eligible / max(n_total, 1):5.1f}%){mark}"
+    )
 
 if n_full == 0:
     raise ValueError(f"최근 {ANALYSIS_GAMES}경기를 보유한 테스트 유저가 없습니다.")
 
 EVAL_GAMES = ANALYSIS_GAMES
 test_player_id = (
-    game_counts.filter(F.col("count") >= EVAL_GAMES)
-    .orderBy(F.desc("count"))
-    .first()["player_id"]
+    game_counts.filter(F.col("count") >= EVAL_GAMES).orderBy(F.desc("count")).first()["player_id"]
 )
 
 recent = (
     df_z.filter(F.col("player_id") == test_player_id)
     .orderBy(F.desc("game_start_datetime"))
     .limit(EVAL_GAMES)
-    .select("match_id", "game_start_datetime", "team_position", "tier_bucket",
-            "champion_name", "win", "kills", "deaths", "assists", *ALL_FEATURES)
+    .select(
+        "match_id",
+        "game_start_datetime",
+        "team_position",
+        "tier_bucket",
+        "champion_name",
+        "win",
+        "kills",
+        "deaths",
+        "assists",
+        *ALL_FEATURES,
+    )
     .toPandas()
 )
 recent["game_start_datetime"] = recent["game_start_datetime"].astype(str)
 
 result = analyzer.analyze(recent.to_dict("records"))
-print(json.dumps({key: value for key, value in result.items() if key != "_debug_scores"},
-                 ensure_ascii=False, indent=2, default=str))
+print(
+    json.dumps(
+        {key: value for key, value in result.items() if key != "_debug_scores"},
+        ensure_ascii=False,
+        indent=2,
+        default=str,
+    )
+)
 
 
 # COMMAND ----------
@@ -2934,6 +3230,7 @@ eligible_players = (
 )
 sample_ids = [row["player_id"] for row in eligible_players.collect()]
 
+
 def fmt_items(items):
     if not items:
         return "-"
@@ -2942,14 +3239,22 @@ def fmt_items(items):
         for item in items
     )
 
+
 summary = []
 for player_id in sample_ids:
     games = (
         df_z.filter(F.col("player_id") == player_id)
         .orderBy(F.desc("game_start_datetime"))
         .limit(EVAL_GAMES)
-        .select("match_id", "game_start_datetime", "team_position", "tier_bucket",
-                "champion_name", "win", *ALL_FEATURES)
+        .select(
+            "match_id",
+            "game_start_datetime",
+            "team_position",
+            "tier_bucket",
+            "champion_name",
+            "win",
+            *ALL_FEATURES,
+        )
         .toPandas()
     )
     games["game_start_datetime"] = games["game_start_datetime"].astype(str)
@@ -2959,26 +3264,36 @@ for player_id in sample_ids:
 
     real_strengths = sum(not item.get("is_relative") for item in result_i["strengths"])
     real_improvements = sum(not item.get("is_relative") for item in result_i["improvements"])
-    summary.append({
-        "player": player_id[:8],
-        "position": result_i["main_position"],
-        "tier": max(result_i.get("tier_buckets", {"ALL": 1}), key=result_i.get("tier_buckets", {"ALL": 1}).get),
-        "style_status": result_i["play_style"]["status"],
-        "style": result_i["play_style"]["styles"][0]["name"] if result_i["play_style"]["styles"] else None,
-        "consistency": result_i["play_style"]["consistency"],
-        "has_strengths": result_i["has_strengths"],
-        "has_improvements": result_i["has_improvements"],
-        "n_real_strength": real_strengths,
-        "n_real_improve": real_improvements,
-        "강점": fmt_items(result_i["strengths"]),
-        "개선점": fmt_items(result_i["improvements"]),
-        "goal": result_i["primary_goal"]["metric"] if result_i["primary_goal"] else None,
-        "goal_tag": result_i["primary_goal"]["finding_tag"] if result_i["primary_goal"] else None,
-        "excluded_log_only": ", ".join(result_i["excluded_structural"]) or None,
-    })
+    summary.append(
+        {
+            "player": player_id[:8],
+            "position": result_i["main_position"],
+            "tier": max(
+                result_i.get("tier_buckets", {"ALL": 1}),
+                key=result_i.get("tier_buckets", {"ALL": 1}).get,
+            ),
+            "style_status": result_i["play_style"]["status"],
+            "style": result_i["play_style"]["styles"][0]["name"]
+            if result_i["play_style"]["styles"]
+            else None,
+            "consistency": result_i["play_style"]["consistency"],
+            "has_strengths": result_i["has_strengths"],
+            "has_improvements": result_i["has_improvements"],
+            "n_real_strength": real_strengths,
+            "n_real_improve": real_improvements,
+            "강점": fmt_items(result_i["strengths"]),
+            "개선점": fmt_items(result_i["improvements"]),
+            "goal": result_i["primary_goal"]["metric"] if result_i["primary_goal"] else None,
+            "goal_tag": result_i["primary_goal"]["finding_tag"]
+            if result_i["primary_goal"]
+            else None,
+            "excluded_log_only": ", ".join(result_i["excluded_structural"]) or None,
+        }
+    )
 
 smoke = pd.DataFrame(summary)
 display(smoke)
+
 
 def threshold_recommendation(name, current, zero_rate, full_rate):
     if zero_rate > 0.30:
@@ -2992,6 +3307,7 @@ def threshold_recommendation(name, current, zero_rate, full_rate):
         reason = "현재 분포가 목표 범위"
     print(f"{name}: {current:.2f} → 권고 {recommended:.2f} ({reason})")
     return recommended
+
 
 if len(smoke):
     strength_zero = 1 - smoke["has_strengths"].mean()
@@ -3015,7 +3331,11 @@ if len(smoke):
     print(f"DOMINANT_SHARE: {DOMINANT_SHARE:.2f} → 권고 {recommended_dominant_share:.2f}")
 
     print("\n[포지션별 unstable 비율]")
-    print(smoke.groupby("position")["style_status"].apply(lambda x: (x == "unstable").mean()).to_string())
+    print(
+        smoke.groupby("position")["style_status"]
+        .apply(lambda x: (x == "unstable").mean())
+        .to_string()
+    )
     print("\n주의: 권고값을 설정 셀에 반영한 뒤 Cell 05부터 재실행해야 JSON에도 적용됩니다.")
 
 
@@ -3045,8 +3365,15 @@ for player_id in sample_ids[:50]:
         df_z.filter(F.col("player_id") == player_id)
         .orderBy(F.desc("game_start_datetime"))
         .limit(EVAL_GAMES)
-        .select("match_id", "game_start_datetime", "team_position", "tier_bucket",
-                "champion_name", "win", *ALL_FEATURES)
+        .select(
+            "match_id",
+            "game_start_datetime",
+            "team_position",
+            "tier_bucket",
+            "champion_name",
+            "win",
+            *ALL_FEATURES,
+        )
         .toPandas()
     )
     games["game_start_datetime"] = games["game_start_datetime"].astype(str)
@@ -3062,20 +3389,22 @@ for player_id in sample_ids[:50]:
     evidence = new["style_evidence"] or {}
     confidence = new.get("style_confidence") or {}
 
-    rows_out.append({
-        "player": player_id[:8],
-        "position": new["main_position"],
-        "old_status": old["play_style"]["status"],
-        "new_status": new["play_style"]["status"],
-        "old_style": old_style,
-        "new_style": new_style,
-        "flipped": old_style != new_style,
-        "confidence": confidence.get("level", "low"),
-        "score": confidence.get("score", 0.0),
-        "애매경기": new["play_style"].get("ambiguous_games", 0),
-        "근거축": ", ".join(e["metric"] for e in evidence.get("matched_axes", [])),
-        "미달축": ", ".join(e["metric"] for e in evidence.get("off_style_axes", [])),
-    })
+    rows_out.append(
+        {
+            "player": player_id[:8],
+            "position": new["main_position"],
+            "old_status": old["play_style"]["status"],
+            "new_status": new["play_style"]["status"],
+            "old_style": old_style,
+            "new_style": new_style,
+            "flipped": old_style != new_style,
+            "confidence": confidence.get("level", "low"),
+            "score": confidence.get("score", 0.0),
+            "애매경기": new["play_style"].get("ambiguous_games", 0),
+            "근거축": ", ".join(e["metric"] for e in evidence.get("matched_axes", [])),
+            "미달축": ", ".join(e["metric"] for e in evidence.get("off_style_axes", [])),
+        }
+    )
 
 explain_smoke = pd.DataFrame(rows_out)
 display(explain_smoke)
@@ -3093,7 +3422,9 @@ if len(explain_smoke):
         print("\n[권고] 중심점이 흐릿합니다. k 를 줄이거나 축 임계값을 0.15 로 낮추세요.")
     low_rate = (explain_smoke["confidence"] == "low").mean()
     if low_rate > 0.35:
-        print(f"[권고] low 신뢰도 {low_rate:.0%} — DOMINANT_SHARE 를 0.55 로 올리는 것을 검토하세요.")
+        print(
+            f"[권고] low 신뢰도 {low_rate:.0%} — DOMINANT_SHARE 를 0.55 로 올리는 것을 검토하세요."
+        )
 
 # COMMAND ----------
 
@@ -3180,12 +3511,13 @@ print(list(result.keys())[:5])
 
 import pandas as pd
 
+
 def _mean_or_zero(df, column):
     return float(df[column].mean()) if column in df.columns and len(df) else 0.0
 
 
 def _win_mask(series):
-    '''Spark/Pandas bool과 문자열 bool 모두 안전하게 처리한다.'''
+    """Spark/Pandas bool과 문자열 bool 모두 안전하게 처리한다."""
     if str(series.dtype) == "bool":
         return series
     return series.astype(str).str.lower().isin(["true", "1", "1.0"])
@@ -3199,7 +3531,7 @@ def _format_metric_list(items, limit=2):
 
 
 def build_korean_feedback(analyzer_result, games, player_name="플레이어"):
-    '''ML 분석 결과 + 최근 경기 원본으로 사용자에게 보여줄 코칭 근거를 만든다.'''
+    """ML 분석 결과 + 최근 경기 원본으로 사용자에게 보여줄 코칭 근거를 만든다."""
     if analyzer_result.get("status") != "ok":
         return {
             "status": analyzer_result.get("status", "error"),
@@ -3221,51 +3553,75 @@ def build_korean_feedback(analyzer_result, games, player_name="플레이어"):
     style_names = [x.get("name", "분석된 스타일") for x in style.get("styles", [])]
     style_name = "·".join(style_names) if style_names else "혼합 플레이형"
 
-    champion_counts = games["champion_name"].value_counts() if "champion_name" in games else pd.Series(dtype=int)
+    champion_counts = (
+        games["champion_name"].value_counts() if "champion_name" in games else pd.Series(dtype=int)
+    )
     main_champion = str(champion_counts.index[0]) if len(champion_counts) else None
     main_champion_games = int(champion_counts.iloc[0]) if len(champion_counts) else 0
 
     strengths = analyzer_result.get("strengths", [])
     improvements = analyzer_result.get("improvements", [])
-    primary_goal = analyzer_result.get("primary_goal") or (improvements[0] if improvements else None)
+    primary_goal = analyzer_result.get("primary_goal") or (
+        improvements[0] if improvements else None
+    )
 
     # 패배 패턴은 전체 평균이 아니라 승리/패배 그룹 간 차이로만 판단한다.
     death_gap = _mean_or_zero(loss_games, "deaths") - _mean_or_zero(win_games, "deaths")
     kda_gap = _mean_or_zero(win_games, "kda") - _mean_or_zero(loss_games, "kda")
-    kp_gap = _mean_or_zero(win_games, "kill_participation") - _mean_or_zero(loss_games, "kill_participation")
-    vision_gap = _mean_or_zero(win_games, "vision_score_per_min") - _mean_or_zero(loss_games, "vision_score_per_min")
+    kp_gap = _mean_or_zero(win_games, "kill_participation") - _mean_or_zero(
+        loss_games, "kill_participation"
+    )
+    vision_gap = _mean_or_zero(win_games, "vision_score_per_min") - _mean_or_zero(
+        loss_games, "vision_score_per_min"
+    )
 
     loss_patterns = []
     if len(loss_games) >= 2 and len(win_games) >= 2:
         if death_gap >= 0.7:
-            loss_patterns.append({
-                "key": "death_gap",
-                "text": f"패배할 때 평균 사망이 승리보다 {death_gap:.1f}회 많아 한타 전에 전투력을 잃는 패턴",
-            })
+            loss_patterns.append(
+                {
+                    "key": "death_gap",
+                    "text": f"패배할 때 평균 사망이 승리보다 {death_gap:.1f}회 많아 한타 전에 전투력을 잃는 패턴",
+                }
+            )
         if kp_gap >= 0.08:
-            loss_patterns.append({
-                "key": "kp_gap",
-                "text": "패배 경기에서 킬 관여율이 낮아져 한타 기여가 줄어드는 패턴",
-            })
+            loss_patterns.append(
+                {
+                    "key": "kp_gap",
+                    "text": "패배 경기에서 킬 관여율이 낮아져 한타 기여가 줄어드는 패턴",
+                }
+            )
         if vision_gap >= 0.15:
-            loss_patterns.append({
-                "key": "vision_gap",
-                "text": "패배 경기에서 분당 시야 점수가 낮아 오브젝트 전 준비가 약해지는 패턴",
-            })
+            loss_patterns.append(
+                {
+                    "key": "vision_gap",
+                    "text": "패배 경기에서 분당 시야 점수가 낮아 오브젝트 전 준비가 약해지는 패턴",
+                }
+            )
         if kda_gap >= 1.0 and not loss_patterns:
-            loss_patterns.append({
-                "key": "kda_gap",
-                "text": "패배 경기에서 KDA가 크게 낮아져 전투 손실이 누적되는 패턴",
-            })
+            loss_patterns.append(
+                {
+                    "key": "kda_gap",
+                    "text": "패배 경기에서 KDA가 크게 낮아져 전투 손실이 누적되는 패턴",
+                }
+            )
 
     if not loss_patterns:
-        loss_patterns.append({
-            "key": "insufficient_pattern",
-            "text": "승패 그룹 간 뚜렷한 단일 패턴은 아직 부족해, 다음 경기에서도 사망·시야·한타 관여를 함께 관찰할 필요",
-        })
+        loss_patterns.append(
+            {
+                "key": "insufficient_pattern",
+                "text": "승패 그룹 간 뚜렷한 단일 패턴은 아직 부족해, 다음 경기에서도 사망·시야·한타 관여를 함께 관찰할 필요",
+            }
+        )
 
-    primary_metric = primary_goal.get("metric", primary_goal.get("key", "생존과 한타 참여")) if primary_goal else "생존과 한타 참여"
-    primary_message = (primary_goal.get("coaching_line") if primary_goal else None) or f"{primary_metric}을(를) 다음 경기의 우선 목표로 두세요."
+    primary_metric = (
+        primary_goal.get("metric", primary_goal.get("key", "생존과 한타 참여"))
+        if primary_goal
+        else "생존과 한타 참여"
+    )
+    primary_message = (
+        primary_goal.get("coaching_line") if primary_goal else None
+    ) or f"{primary_metric}을(를) 다음 경기의 우선 목표로 두세요."
 
     if any(x["key"] == "death_gap" for x in loss_patterns):
         action = "시야를 잡거나 오브젝트를 준비할 때 혼자 깊게 들어가기보다, 아군 위치와 합류 가능 여부를 먼저 확인해 생존을 우선하세요."
@@ -3298,7 +3654,7 @@ def build_korean_feedback(analyzer_result, games, player_name="플레이어"):
 
 
 def render_korean_feedback(feedback):
-    '''요청한 '몬도치님 피드백' 형태의 사용자 노출용 Markdown을 만든다.'''
+    """요청한 '몬도치님 피드백' 형태의 사용자 노출용 Markdown을 만든다."""
     if feedback.get("status") != "ok":
         return feedback.get("message", "분석할 수 없습니다.")
 
@@ -3308,18 +3664,18 @@ def render_korean_feedback(feedback):
 
     strength_text = _format_metric_list(feedback["strengths"])
     pattern_text = "\n".join(f"- {x['text']}" for x in feedback["loss_patterns"])
-    return f'''{feedback['player_name']}님의 최근 플레이 스타일은 **{feedback['style_name']}**, 특히 **{feedback['position']} 포지션 중심의 플레이**에 가깝습니다.{champion_sentence}
+    return f"""{feedback["player_name"]}님의 최근 플레이 스타일은 **{feedback["style_name"]}**, 특히 **{feedback["position"]} 포지션 중심의 플레이**에 가깝습니다.{champion_sentence}
 
-최근 정상적으로 종료된 {feedback['games']}게임 기준 승률은 **{feedback['win_rate']:.1f}%**, KDA는 **{feedback['kda']:.2f}**입니다. 강점으로는 **{strength_text}**가 확인됐습니다. 이 지표들은 단순 평균 비교가 아니라 현재 플레이 스타일과 같은 포지션 기준으로 산출했습니다.
+최근 정상적으로 종료된 {feedback["games"]}게임 기준 승률은 **{feedback["win_rate"]:.1f}%**, KDA는 **{feedback["kda"]:.2f}**입니다. 강점으로는 **{strength_text}**가 확인됐습니다. 이 지표들은 단순 평균 비교가 아니라 현재 플레이 스타일과 같은 포지션 기준으로 산출했습니다.
 
 반대로 패배할 때는 다음 패턴이 확인됩니다.
 {pattern_text}
 
-🎯 **가장 중요한 개선 포인트: {feedback['primary_goal']['metric']}**
+🎯 **가장 중요한 개선 포인트: {feedback["primary_goal"]["metric"]}**
 
-{feedback['primary_goal']['message']} {feedback['primary_goal']['action']}
+{feedback["primary_goal"]["message"]} {feedback["primary_goal"]["action"]}
 
-한 줄로 요약하면, **“{feedback['one_line_summary']}”**입니다.'''
+한 줄로 요약하면, **“{feedback["one_line_summary"]}”**입니다."""
 
 
 # Cell 24를 건너뛰고 이 셀만 실행한 경우에도 result/recent를 자동 준비한다.
@@ -3327,7 +3683,11 @@ if "result" in globals() and "recent" in globals():
     feedback_result = result
     feedback_recent = recent.copy()
 else:
-    required = [name for name in ("serving", "df_z", "ALL_FEATURES", "PlayStyleAnalyzer") if name not in globals()]
+    required = [
+        name
+        for name in ("serving", "df_z", "ALL_FEATURES", "PlayStyleAnalyzer")
+        if name not in globals()
+    ]
     if required:
         raise RuntimeError(
             "이 셀만 단독 실행하려면 먼저 학습/추론 셀을 실행해야 합니다. "
@@ -3339,15 +3699,25 @@ else:
     feedback_player_id = globals().get("test_player_id")
     if feedback_player_id is None:
         feedback_player_id = (
-            df_z.groupBy("player_id").count()
-            .orderBy(F.desc("count"))
-            .first()["player_id"]
+            df_z.groupBy("player_id").count().orderBy(F.desc("count")).first()["player_id"]
         )
 
-    feedback_columns = list(dict.fromkeys([
-        "match_id", "game_start_datetime", "team_position", "tier_bucket", "champion_name", "win",
-        "kills", "deaths", "assists", *ALL_FEATURES,
-    ]))
+    feedback_columns = list(
+        dict.fromkeys(
+            [
+                "match_id",
+                "game_start_datetime",
+                "team_position",
+                "tier_bucket",
+                "champion_name",
+                "win",
+                "kills",
+                "deaths",
+                "assists",
+                *ALL_FEATURES,
+            ]
+        )
+    )
     feedback_columns = [c for c in feedback_columns if c in df_z.columns]
     feedback_recent = (
         df_z.filter(F.col("player_id") == feedback_player_id)

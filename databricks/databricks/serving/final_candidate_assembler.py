@@ -5,16 +5,20 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-
 METRIC_FAMILIES = {
     "growth": {"cs_per_min", "gold_per_min", "gold_share"},
     "damage_output": {
-        "damage_per_min", "damage_share", "damage_efficiency", "resource_efficiency",
+        "damage_per_min",
+        "damage_share",
+        "damage_efficiency",
+        "resource_efficiency",
     },
     "survival_combat": {"kda", "deaths"},
     "participation": {"kill_participation"},
     "vision": {
-        "vision_score_per_min", "wards_placed_per_min", "wards_killed_per_min",
+        "vision_score_per_min",
+        "wards_placed_per_min",
+        "wards_killed_per_min",
         "vision_wards_bought_per_min",
     },
     "objective": {"objective_damage_per_min"},
@@ -80,7 +84,8 @@ def _playstyle_item(item: dict[str, Any], confidence: dict[str, Any], kind: str)
         "confidence": deepcopy(confidence),
         "reliability": item.get("reliability"),
         "evidence": deepcopy(item),
-        "prompt_hint": item.get("prompt_hint") or (
+        "prompt_hint": item.get("prompt_hint")
+        or (
             "플레이스타일 기준의 보조 개선 후보다. v8.2 우선순위를 대체하지 않는다."
             if kind == "improvement"
             else "신뢰도와 플레이스타일 기준을 함께 밝혀 강점으로 설명한다."
@@ -150,7 +155,8 @@ def assemble_final_candidates(
 
     eligible_priority = sorted(
         (
-            candidate for candidate in priority_candidates
+            candidate
+            for candidate in priority_candidates
             if candidate.get("ranking_group") == "role_specific_rf_fdr"
             and candidate.get("statistically_valid") is True
             and candidate.get("primary_goal_eligible") is True
@@ -163,7 +169,9 @@ def assemble_final_candidates(
         reverse=True,
     )
 
-    primary_goal = _priority_item(eligible_priority[0], "v8.2_rf_fdr", "high") if eligible_priority else None
+    primary_goal = (
+        _priority_item(eligible_priority[0], "v8.2_rf_fdr", "high") if eligible_priority else None
+    )
     improvements: list[dict[str, Any]] = []
     selected_families: set[str] = set()
 
@@ -197,7 +205,8 @@ def assemble_final_candidates(
     # Tier 4: UNKNOWN-role benchmark references. Separate scale, tentative only.
     benchmark_references = sorted(
         (
-            candidate for candidate in priority_candidates
+            candidate
+            for candidate in priority_candidates
             if candidate.get("ranking_group") == "benchmark_only_reference"
             and candidate.get("primary_goal_eligible") is False
             and candidate.get("standalone_allowed") is True
@@ -230,7 +239,8 @@ def assemble_final_candidates(
     # Statistically valid benchmark advantages from v8.2, without causal language.
     benchmark_strengths = sorted(
         (
-            candidate for candidate in priority_candidates
+            candidate
+            for candidate in priority_candidates
             if candidate.get("ranking_group") == "role_specific_rf_fdr"
             and candidate.get("statistically_valid") is True
             and candidate.get("standalone_allowed") is True
@@ -252,8 +262,10 @@ def assemble_final_candidates(
         "combat_review": safe_reviews,
         "selection_metadata": {
             "priority_source": (
-                "v8.2_role_specific_rf_fdr" if eligible_priority
-                else "v8.2_benchmark_reference" if benchmark_references
+                "v8.2_role_specific_rf_fdr"
+                if eligible_priority
+                else "v8.2_benchmark_reference"
+                if benchmark_references
                 else "none"
             ),
             "priority_mode": priority_output.get("priority_mode"),

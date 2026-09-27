@@ -7,7 +7,6 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-
 ITEM_FIELDS = tuple(f"item{index}" for index in range(6))
 COACH_FEATURES = (
     "kda",
@@ -125,7 +124,9 @@ def normalize_recent_games(
     player_id: str,
     tier: str | None = None,
 ) -> dict[str, Any]:
-    games = [normalize_game(game, index) for index, game in enumerate(_parse_games(recent_games_json))]
+    games = [
+        normalize_game(game, index) for index, game in enumerate(_parse_games(recent_games_json))
+    ]
     normalized_tier = str(tier or "UNKNOWN").strip().upper() or "UNKNOWN"
     return {
         "player_id": str(player_id),
