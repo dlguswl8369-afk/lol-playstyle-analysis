@@ -8,6 +8,5 @@ window.APP_STATE = {
     savedReportDraft: null,
     summary: null,
     matches: [],
-    aiCoach: null,
-    infoRiotId: null
+    aiCoach: null
 };
