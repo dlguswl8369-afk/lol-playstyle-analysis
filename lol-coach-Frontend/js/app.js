@@ -93,55 +93,6 @@ $("#logoLink").addEventListener("click", (e) => {
 $("#infoLink").addEventListener("click", (event) => {
     event.preventDefault();
     showView("info");
-    if (!window.APP_STATE.infoRiotId) {
-        window.APP_STATE.infoRiotId = loadInfoRiotContext();
-    }
-    renderInfoContext();
-    $("#infoQuestion").focus();
-});
-
-const INFO_CONTEXT_KEY = "riftcoach.infoRiotId";
-
-function loadInfoRiotContext() {
-    try {
-        const value = JSON.parse(localStorage.getItem(INFO_CONTEXT_KEY));
-        return value?.gameName && value?.tagLine ? value : null;
-    } catch {
-        return null;
-    }
-}
-
-function saveInfoRiotContext(context) {
-    window.APP_STATE.infoRiotId = context;
-    try {
-        if (context) localStorage.setItem(INFO_CONTEXT_KEY, JSON.stringify(context));
-        else localStorage.removeItem(INFO_CONTEXT_KEY);
-    } catch {
-        // localStorage 사용 불가능한 환경은 현재 세션 상태만 사용한다.
-    }
-}
-
-function embeddedInfoRiotContext(question) {
-    const slashFormat = question.match(/^\s*([^#/\r\n]{1,100}?)\s*\/\s*#?([^#/\s]{2,10})\s*\/\s*.+/);
-    const hashFormat = question.match(/^\s*([^#\r\n]{1,100}?)\s*#\s*([^#\s]{2,10})\s+.+/);
-    const matched = slashFormat ?? hashFormat;
-    return matched
-        ? { gameName: matched[1].trim(), tagLine: matched[2].trim() }
-        : null;
-}
-
-function renderInfoContext() {
-    const context = window.APP_STATE.infoRiotId;
-    const hasContext = Boolean(context?.gameName && context?.tagLine);
-    setHidden("#infoContext", !hasContext);
-    $("#infoContextValue").textContent = hasContext
-        ? `${context.gameName}#${context.tagLine}`
-        : "";
-}
-
-$("#infoContextClear").addEventListener("click", () => {
-    saveInfoRiotContext(null);
-    renderInfoContext();
     $("#infoQuestion").focus();
 });
 
@@ -1072,14 +1023,71 @@ $("#searchResult").addEventListener("click", (event) => {
     $("#lookupForm").requestSubmit();
 });
 
-/* ===================== 공식 정보 + 개인 전적 RAG ===================== */
+/* ===================== 공식 정보 + 개인 경기 질문 ===================== */
 const INFO_ROUTE_LABEL = {
     official_information: "공식 정보",
     personal_match: "개인 전적 분석",
     mixed: "공식 정보 + 개인 전적 분석",
 };
 
-function renderInfoAnswer(question, result) {
+const INFO_MODE_COPY = {
+    official: {
+        placeholder: "예) 아리의 스킬을 알려줘",
+        empty: "공식 게임 정보에 대해 궁금한 내용을 입력해 주세요.",
+        loading: "공식 문서에서 답변을 찾고 있습니다.",
+    },
+    personal: {
+        placeholder: "예) 최근에 어떤 챔피언을 가장 많이 했어?",
+        empty: "Riot ID와 질문을 입력하면 최근 솔로랭크 경기를 분석합니다.",
+        loading: "최근 솔로랭크 경기와 개인 통계를 분석하고 있습니다.",
+    },
+};
+
+let infoRequestPending = false;
+
+function selectedInfoMode() {
+    return document.querySelector('input[name="infoMode"]:checked')?.value ?? "official";
+}
+
+function setInfoMode(mode) {
+    const personal = mode === "personal";
+    setHidden("#infoPersonalFields", !personal);
+    $("#infoQuestion").placeholder = INFO_MODE_COPY[mode].placeholder;
+    $("#infoError").textContent = "";
+    setHidden("#infoError", true);
+    $("#infoLoading").textContent = "";
+    setHidden("#infoLoading", true);
+    $("#infoAnswer").innerHTML = `<p class="empty">${INFO_MODE_COPY[mode].empty}</p>`;
+    (personal ? $("#infoGameName") : $("#infoQuestion")).focus();
+}
+
+document.querySelectorAll('input[name="infoMode"]').forEach((input) => {
+    input.addEventListener("change", () => setInfoMode(input.value));
+});
+
+function personalStatisticsMarkup(result) {
+    const evidence = result.statistics ?? {};
+    const statistics = evidence.statistics ?? {};
+    const matchCount = Number(statistics.match_count ?? evidence.match_count ?? 0);
+    const champions = Array.isArray(evidence.most_played_champions)
+        ? evidence.most_played_champions
+        : [];
+    const championRows = champions.length
+        ? `<ul class="info-stat-list">${champions.slice(0, 5).map((champion) => `
+               <li><strong>${escapeHtml(champion.champion_name ?? "알 수 없음")}</strong>
+                   <span>${Number(champion.match_count ?? 0)}회</span></li>`).join("")}</ul>`
+        : "";
+    return `
+        <dl class="info-personal-summary">
+            <div><dt>분석 대상</dt><dd>${escapeHtml(
+                `${result.subject?.game_name ?? ""}#${result.subject?.tag_line ?? ""}`,
+            )}</dd></div>
+            <div><dt>최근 경기</dt><dd>${matchCount}경기</dd></div>
+        </dl>
+        ${championRows}`;
+}
+
+function renderInfoAnswer(mode, question, result) {
     const answer = String(result.answer ?? "").trim() || "답변을 생성하지 못했습니다.";
     const citations = Array.isArray(result.citations) ? result.citations : [];
     const sources = citations.length
@@ -1095,9 +1103,13 @@ function renderInfoAnswer(question, result) {
         : "";
     const route = INFO_ROUTE_LABEL[result.route] ?? result.route ?? "정보 검색";
     const status = result.status ? ` · ${result.status}` : "";
+    const title = mode === "personal" ? "개인 경기 분석" : "공식 게임 정보";
+    const statistics = mode === "personal" ? personalStatisticsMarkup(result) : "";
 
     $("#infoAnswer").innerHTML = `
+        <h3 class="info-result-title">${title}</h3>
         <p class="info-question">${escapeHtml(question)}</p>
+        ${statistics}
         <div class="info-response">${escapeHtml(answer).replace(/\n/g, "<br>")}</div>
         ${sources}
         <p class="info-meta">${escapeHtml(route + status)}</p>`;
@@ -1105,42 +1117,48 @@ function renderInfoAnswer(question, result) {
 
 $("#infoForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const question = $("#infoQuestion").value.trim();
-    if (!question) return;
+    if (infoRequestPending) return;
 
-    const embeddedContext = embeddedInfoRiotContext(question);
-    if (embeddedContext) {
-        saveInfoRiotContext(embeddedContext);
-        renderInfoContext();
+    const mode = selectedInfoMode();
+    const gameName = $("#infoGameName").value.trim();
+    const tagLine = $("#infoTagLine").value.trim().replace(/^#+/, "");
+    const question = $("#infoQuestion").value.trim();
+    const missingMessages = [];
+    if (mode === "personal" && !gameName) missingMessages.push("소환사명을 입력해주세요.");
+    if (mode === "personal" && !tagLine) missingMessages.push("태그를 입력해주세요.");
+    if (!question) missingMessages.push("질문을 입력해주세요.");
+    if (missingMessages.length) {
+        $("#infoError").textContent = missingMessages.join(" ");
+        setHidden("#infoError", false);
+        return;
     }
-    const context = window.APP_STATE.infoRiotId ?? {};
+
     const button = $("#infoBtn");
+    infoRequestPending = true;
+    $("#infoError").textContent = "";
     setHidden("#infoError", true);
+    $("#infoLoading").textContent = INFO_MODE_COPY[mode].loading;
+    setHidden("#infoLoading", false);
     button.disabled = true;
     button.textContent = "검색 중...";
-    $("#infoAnswer").innerHTML = `<p class="empty">공식 문서와 개인 경기 데이터를 확인하고 있습니다.</p>`;
+    $("#infoAnswer").innerHTML = `<p class="empty">${INFO_MODE_COPY[mode].loading}</p>`;
 
     try {
-        const result = await window.APP_API.askRag(
+        const result = await window.APP_API.askRag({
+            mode,
             question,
-            context.gameName ?? "",
-            context.tagLine ?? "",
-            10,
-        );
-        if (result.subject?.game_name && result.subject?.tag_line) {
-            saveInfoRiotContext({
-                gameName: result.subject.game_name,
-                tagLine: result.subject.tag_line,
-            });
-            renderInfoContext();
-        }
-        renderInfoAnswer(question, result);
-        $("#infoQuestion").value = "";
+            gameName,
+            tagLine,
+            matchCount: 10,
+        });
+        renderInfoAnswer(mode, question, result);
     } catch (error) {
         $("#infoError").textContent = error.message;
         setHidden("#infoError", false);
         $("#infoAnswer").innerHTML = `<p class="empty">질문을 처리하지 못했습니다.</p>`;
     } finally {
+        infoRequestPending = false;
+        setHidden("#infoLoading", true);
         button.disabled = false;
         button.textContent = "검색";
     }

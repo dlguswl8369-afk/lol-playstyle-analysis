@@ -4,12 +4,14 @@ import re
 from typing import Literal
 
 Route = Literal["official_information", "personal_match", "mixed"]
+QuestionMode = Literal["official", "personal"]
 
 EXPLICIT_PERSONAL_PATTERNS = (
     r"(?:^|\s)(?:내가|나의|내)(?=\s|$|가|게|를|의)",
     r"(?:최근|이번).*(?:경기|판|플레이|사용)",
     r"(?:경기|전적|티어|승률|kda|데스|(?<!스)킬|cs|골드|피해량|시야|플레이스타일)",
     r"(?:많이|자주|주로|모스트).*(?:한|하는|플레이|사용|챔피언)",
+    r"(?:어떤|무슨)?\s*챔피언.*(?:많이|자주|주로|모스트)",
     r"상대\s*(?:라이너|정글러|서포터|탑|미드|원딜)",
     r"개선(?:점|해야)|고칠\s*점",
     r"(?:샀|구매|최종\s*아이템|아이템\s*빌드|몇\s*분에)",
@@ -42,10 +44,14 @@ def _route_decision(
     question: str,
     riot_id: str | None,
     tag_line: str | None,
+    mode: QuestionMode | None = None,
 ) -> tuple[Route, str]:
     text = question.strip().casefold()
     if not text:
         raise ValueError("question must not be empty")
+    if mode == "official":
+        return "official_information", "official_mode_selected"
+
     has_player_context = bool((riot_id or "").strip() and (tag_line or "").strip())
     explicitly_personal = any(
         re.search(pattern, text, re.IGNORECASE) for pattern in EXPLICIT_PERSONAL_PATTERNS
@@ -53,7 +59,19 @@ def _route_decision(
     explicitly_official = any(
         re.search(pattern, text, re.IGNORECASE) for pattern in EXPLICIT_OFFICIAL_PATTERNS
     )
+    explicitly_official_for_mixed = any(
+        re.search(pattern, text, re.IGNORECASE) for pattern in EXPLICIT_OFFICIAL_PATTERNS[1:]
+    )
     generic_entity_question = bool(re.search(GENERIC_ENTITY_QUESTION_PATTERN, text, re.IGNORECASE))
+
+    if mode == "personal":
+        if explicitly_personal and explicitly_official_for_mixed:
+            return "mixed", "explicit_personal_and_official"
+        if explicitly_personal:
+            return "personal_match", "personal_mode_selected"
+        if explicitly_official or generic_entity_question:
+            return "mixed", "personal_mode_with_official_intent"
+        return "personal_match", "personal_mode_selected"
 
     if has_player_context and explicitly_personal and explicitly_official:
         return "mixed", "explicit_personal_and_official"
@@ -70,16 +88,18 @@ def classify_question(
     question: str,
     riot_id: str | None = None,
     tag_line: str | None = None,
+    mode: QuestionMode | None = None,
 ) -> Route:
-    return _route_decision(question, riot_id, tag_line)[0]
+    return _route_decision(question, riot_id, tag_line, mode)[0]
 
 
 def classify_question_reason(
     question: str,
     riot_id: str | None = None,
     tag_line: str | None = None,
+    mode: QuestionMode | None = None,
 ) -> str:
-    return _route_decision(question, riot_id, tag_line)[1]
+    return _route_decision(question, riot_id, tag_line, mode)[1]
 
 
 def requested_recent_count(question: str, default: int) -> int:
