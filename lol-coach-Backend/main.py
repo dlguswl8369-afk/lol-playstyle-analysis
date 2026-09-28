@@ -1213,7 +1213,10 @@ if FRONTEND_DIR.is_dir():
 
     @app.get("/", include_in_schema=False)
     def frontend_entry() -> FileResponse:
-        return FileResponse(FRONTEND_DIR / "index.html")
+        return FileResponse(
+            FRONTEND_DIR / "index.html",
+            headers={"Cache-Control": "no-cache"},
+        )
 
     # Keep this last so API routes take precedence over the root mount.
     app.mount("/", StaticFiles(directory=FRONTEND_DIR), name="frontend")

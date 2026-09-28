@@ -236,7 +236,6 @@ async function runAnalysis(gameName, tagLine, view = "result") {
         window.APP_STATE.player = analysis.profile;
         window.APP_STATE.rank = analysis.rank ?? null;
         window.APP_STATE.riotId = { gameName, tagLine };
-        saveInfoRiotContext({ gameName, tagLine });
         window.APP_STATE.matches = analysis.matches ?? [];
         window.APP_STATE.summary = analysis.summary ?? {};
         saveRecent(gameName, tagLine);
